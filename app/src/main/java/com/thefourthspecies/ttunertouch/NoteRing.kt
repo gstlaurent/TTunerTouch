@@ -193,17 +193,51 @@ class NoteRing @JvmOverloads constructor(
      *    y = r * sin(theta)
      *
      */
-    inner class Point(val position: Double, val distance: Float) {
-        private val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
-        val x: Float = calcX()
-        val y: Float = calcY()
+    inner class Point {
+        var position: Double = 0.0
+            private set
+        var distance: Float = 0.0f
+            private set
+        var x: Float = 0.0f
+            private set
+        var y: Float = 0.0f
+            private set
 
-        fun calcX(): Float {
+        constructor(position: Double, distance: Float) {
+            val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
+            this.position = position
+            this.distance = distance
+            this.x = calcX(theta)
+            this.y = calcY(theta)
+        }
+
+        constructor(x: Float, y: Float) {
+            val xx = (x - mCenterX).toDouble()
+            val yy = (mCenterY - y).toDouble()
+
+            this.position = calcPosition(yy, xx)
+            this.distance = Math.sqrt(xx*xx + yy*yy).toFloat()
+            this.x = x
+            this.y = y
+        }
+
+        private fun calcPosition(yy: Double, xx: Double): Double {
+            val theta = Math.atan2(yy, xx)
+            val pos = (Math.PI / 2 - theta) / (Math.PI * 2)
+            val posBounded = when {
+                pos < 0 -> pos + 1
+                pos > 1 -> pos - 1
+                else -> pos
+            }
+            return posBounded
+        }
+
+        fun calcX(theta: Double): Float {
             val xx = distance * Math.cos(theta).toFloat()
             return mCenterX + xx.toFloat()
         }
 
-        fun calcY(): Float {
+        fun calcY(theta: Double): Float {
             val yy = distance * Math.sin(theta).toFloat()
             return mCenterY - yy.toFloat()
         }
@@ -245,6 +279,14 @@ class NoteRing @JvmOverloads constructor(
         }
     }
 
+     // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
+    /**
+     * A button along the NoteRing. Positions are ratio of 360 degrees along the ring, starting at the top.
+     * @position the location of the Dot
+     * @name the label within the button
+     * @startPosition the edge of the button prior to the Dot
+     * @endPosition the edge of the button after the Dot
+     */
     inner class NoteButton(val position: Double, val name: String,
                            var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
 
@@ -310,7 +352,7 @@ class NoteRing @JvmOverloads constructor(
 
     /**
      * https://stackoverflow.com/questions/4909367/how-to-align-text-vertically
-     * Does not require Draw.Align.CENTER
+     * Requires Draw.Align.LEFT (default)
      */
     fun drawTextCentered(canvas: Canvas, paint: Paint, text: String, cx: Float, cy: Float) {
         paint.getTextBounds(text, 0, text.length, _textBounds)
