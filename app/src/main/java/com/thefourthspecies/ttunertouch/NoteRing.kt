@@ -48,6 +48,11 @@ class NoteRing @JvmOverloads constructor(
     private var mCenterY = 0.0f
     private val _textBounds = Rect() // For centering labels
 
+    // Note Data
+    data class Note(val position: Double, val name: String)
+    var mNotes: MutableList<Note> = mutableListOf()
+
+
 
     init {
         val a = context.theme.obtainStyledAttributes(
@@ -68,6 +73,8 @@ class NoteRing @JvmOverloads constructor(
         }
 
         initPaint()
+
+        initTestData()
     }
 
     fun initPaint() {
@@ -83,6 +90,24 @@ class NoteRing @JvmOverloads constructor(
         mDotPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         mDotPaint.color = mDotColor
     }
+
+    fun initTestData() {
+        mNotes = mutableListOf(
+                Note(0.0, "A"),
+                Note(0.1, "B$FLAT"),
+                Note(0.2, "B"),
+                Note(0.25, "C"),
+                Note(0.3, "C$SHARP"),
+                Note(0.4, "D"),
+                Note(0.5, "E$FLAT"),
+                Note(0.6, "E"),
+                Note(0.7, "F"),
+                Note(0.75, "F$SHARP"),
+                Note(0.8, "G"),
+                Note(0.9, "A$FLAT")
+        )
+    }
+
 
 
 
@@ -118,8 +143,40 @@ class NoteRing @JvmOverloads constructor(
         canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mLinePaint)
         canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mLinePaint)
 
+        val noteButtons: List<NoteButton> = calculateNoteButtons()
+        for (nb in noteButtons) {
+            nb.draw(canvas)
+        }
 
-        drawTestImage(canvas)
+//        drawTestImage(canvas)
+    }
+
+    private fun calculateNoteButtons(): List<NoteButton> {
+        val noteButtons = mutableListOf<NoteButton>()
+        mNotes.mapTo(noteButtons) { NoteButton(it.position, it.name) }
+        noteButtons.sortBy { it.position }
+
+        if (noteButtons.size > 1) {
+            var nbCurr: NoteButton = noteButtons.last()
+            var nbNext: NoteButton = noteButtons[0]
+            var nextEdgePosition = average(1.0, nbCurr.position)
+            nbCurr.endPosition = nextEdgePosition
+            nbNext.startPosition = nextEdgePosition - 1 // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
+
+            for (i in 0..noteButtons.size - 2) {
+                var nbCurr = noteButtons[i]
+                var nbNext = noteButtons[i+1]
+                nextEdgePosition = average(nbCurr.position, nbNext.position)
+                nbCurr.endPosition = nextEdgePosition
+                nbNext.startPosition = nextEdgePosition
+            }
+        }
+
+        return noteButtons
+    }
+
+    private fun average(start: Double, end: Double): Double {
+        return (start + end)/2
     }
 
     /**
@@ -189,17 +246,27 @@ class NoteRing @JvmOverloads constructor(
     }
 
     inner class NoteButton(val position: Double, val name: String,
-                           val startPosition: Double = 0.0, val endPosition: Double = 0.0) {
+                           var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
+
+        init {
+            assert(0.0 <= position && position <= 1.0) {
+                "NoteButton[$position, $name]: 'position' must be from 0 to 1."
+            }
+        }
 
         fun draw(canvas: Canvas) {
             assert(startPosition != endPosition) {
                 "NoteButton[$position, $name] has no width"
             }
             Dot(position).draw(canvas)
-            Label(position, name).draw(canvas)
             Edge(startPosition).draw(canvas)
             Edge(endPosition).draw(canvas)
+
+            val labelPosition = average(startPosition, endPosition)
+            Label(labelPosition, name).draw(canvas)
         }
+
+
     }
 
     fun drawTestImage(canvas: Canvas) {
