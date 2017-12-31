@@ -40,13 +40,13 @@ class NoteRing @JvmOverloads constructor(
     lateinit var mDotPaint: Paint
 
     // Dimensions
+    private val _textBounds = Rect() // For centering labels
     private var mOuterRadius = 0.0f
     private var mInnerRadius = 0.0f
     private var mDotRadius = 0.0f
     private var mLabelRadius = 0.0f
     private var mCenterX = 0.0f
     private var mCenterY = 0.0f
-    private val _textBounds = Rect() // For centering labels
 
     // Note Data
     data class Note(val position: Double, val name: String)
@@ -179,77 +179,14 @@ class NoteRing @JvmOverloads constructor(
         return (start + end)/2
     }
 
-    /**
-     * Point: represents a location in two ways:
-     *  1. modified polar coordinates based
-     *      - middle of view is origin
-     *      - vertical is 0
-     *      - @position: a number from 0 to 1 representing ratio between vertical and 360 degrees
-     *          - theta = offset - angle
-     *                offset: since starting at 90 degrees instead of at 0
-     *                (-): since measuring clockwise instead of counterclockwise
-     * 2. screen coordinates
-     *    x = r * cos(theta)
-     *    y = r * sin(theta)
-     *
-     */
-    inner class Point {
-        var position: Double = 0.0
-            private set
-        var distance: Float = 0.0f
-            private set
-        var x: Float = 0.0f
-            private set
-        var y: Float = 0.0f
-            private set
-
-        constructor(position: Double, distance: Float) {
-            val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
-            this.position = position
-            this.distance = distance
-            this.x = calcX(theta)
-            this.y = calcY(theta)
-        }
-
-        constructor(x: Float, y: Float) {
-            val xx = (x - mCenterX).toDouble()
-            val yy = (mCenterY - y).toDouble()
-
-            this.position = calcPosition(yy, xx)
-            this.distance = Math.sqrt(xx*xx + yy*yy).toFloat()
-            this.x = x
-            this.y = y
-        }
-
-        private fun calcPosition(yy: Double, xx: Double): Double {
-            val theta = Math.atan2(yy, xx)
-            val pos = (Math.PI / 2 - theta) / (Math.PI * 2)
-            val posBounded = when {
-                pos < 0 -> pos + 1
-                pos > 1 -> pos - 1
-                else -> pos
-            }
-            return posBounded
-        }
-
-        fun calcX(theta: Double): Float {
-            val xx = distance * Math.cos(theta).toFloat()
-            return mCenterX + xx.toFloat()
-        }
-
-        fun calcY(theta: Double): Float {
-            val yy = distance * Math.sin(theta).toFloat()
-            return mCenterY - yy.toFloat()
-        }
-    }
 
     /**
      * Edge: a radial line drawn only from the inner to outer radii
      *
      */
     inner class Edge(val position: Double) {
-        val start = Point(position, mInnerRadius)
-        val end = Point(position, mOuterRadius)
+        val start = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
+        val end = Point.polar(position, mOuterRadius, mCenterX, mCenterY)
 
         fun draw(canvas: Canvas) {
             canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
@@ -261,7 +198,7 @@ class NoteRing @JvmOverloads constructor(
      * A circle drawn on the inner border
      */
     inner class Dot(val position: Double) {
-        val point = Point(position, mInnerRadius)
+        val point = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
 
         fun draw(canvas: Canvas) {
             canvas.drawCircle(point.x, point.y, mDotRadius, mDotPaint)
@@ -272,7 +209,7 @@ class NoteRing @JvmOverloads constructor(
      * The note name between the inner and outer borders
      */
     inner class Label (val position: Double, val text: String) {
-        val point = Point(position, mLabelRadius)
+        val point = Point.polar(position, mLabelRadius, mCenterX, mCenterY)
 
         fun draw(canvas: Canvas) {
             drawTextCentered(canvas, mLabelPaint, text, point.x, point.y)
