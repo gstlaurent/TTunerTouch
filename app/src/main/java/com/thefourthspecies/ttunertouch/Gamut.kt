@@ -12,7 +12,7 @@ class Gamut {
      * The white offset is the number of white keys from A
      * The offset is the number of semitones from A
      */
-    enum class Letter(val whiteOffset: Int, val chromaticOffset: Int) {
+    enum class Letter(val diatonicOffset: Int, val chromaticOffset: Int) {
         A(0, 0),
         B(1, 2),
         C(2, 3),
@@ -39,13 +39,13 @@ class Gamut {
     /**
      * All temperable intervals
      */
-    enum class Interval(val whiteDifference: Int, val chromaticDifference: Int) {
-        MINOR_THIRD(2, 3),
-        MAJOR_THIRD(2, 4),
-        PERFECT_FOURTH(3, 5),
-        PERFECT_FIFTH(4, 7),
-        MINOR_SIXTH(5, 8),
-        MAJOR_SIXTH(5, 9)
+    enum class Interval(val diatonicDifference: Int, val chromaticDifference: Int, val ratio: Double) {
+        MINOR_THIRD(2, 3, 6.0/5.0),
+        MAJOR_THIRD(2, 4, 5.0/4.0),
+        PERFECT_FOURTH(3, 5, 4.0/3.0),
+        PERFECT_FIFTH(4, 7, 3.0/2.0),
+        MINOR_SIXTH(5, 8, 5.0/3.0),
+        MAJOR_SIXTH(5, 9, 8.0/5.0)
     }
 
     data class Note(val letter: Letter, val accidental: Accidental, val numAccidental: Int)
@@ -62,7 +62,7 @@ class Gamut {
 
     fun letterAtOffset(offset: Int): Letter {
         val o = offset % Letter.values().size
-        val letter = Letter.values().find { it.whiteOffset == o }
+        val letter = Letter.values().find { it.diatonicOffset == o }
         return letter!!
     }
 
@@ -80,10 +80,10 @@ class Gamut {
     }
 
     fun atIntervalAbove(note: Note, interval: Interval): Note {
-        val upperLetter = letterAtOffset(note.letter.whiteOffset + interval.whiteDifference)
+        val upperLetter = letterAtOffset(note.letter.diatonicOffset + interval.diatonicDifference)
         val adjustedChromaticOffset = note.letter.chromaticOffset + accidentalAdjustment(note)
-        val upperWhiteDifference = chromaticMod(upperLetter.chromaticOffset - adjustedChromaticOffset)
-        val numAccidental = interval.chromaticDifference - upperWhiteDifference
+        val upperDiatonicDifference = chromaticMod(upperLetter.chromaticOffset - adjustedChromaticOffset)
+        val numAccidental = interval.chromaticDifference - upperDiatonicDifference
 
         val upperAccidental = when {
             numAccidental > 0 -> Accidental.SHARP // must widen interval
