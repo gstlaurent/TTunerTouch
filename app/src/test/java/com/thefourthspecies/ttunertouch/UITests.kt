@@ -7,7 +7,7 @@ import org.junit.Assert.*
 /**
  * Created by Graham on 2017-12-31.
  */
-class UIUnitTests {
+class UITests {
     val dDELTA = 1e-7
     val fDELTA = 1e-7f
 
