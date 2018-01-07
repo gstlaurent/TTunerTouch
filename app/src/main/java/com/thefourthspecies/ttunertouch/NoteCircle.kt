@@ -8,6 +8,12 @@ import kotlin.properties.Delegates
 import kotlin.properties.ReadWriteProperty
 import android.graphics.Paint
 import android.graphics.Rect
+import android.view.MotionEvent
+import android.widget.TextView
+import android.support.v4.view.MotionEventCompat
+import android.util.Log
+
+const val DEBUG_TAG = "TTuner"
 
 
 /**
@@ -45,6 +51,7 @@ class NoteCircle @JvmOverloads constructor(
     data class Note(val position: Double, val name: String)
     var mNotes: MutableList<Note> = mutableListOf()
 
+    lateinit var textView: TextView
 
 
     init {
@@ -164,6 +171,17 @@ class NoteCircle @JvmOverloads constructor(
 
     private fun average(start: Double, end: Double): Double {
         return (start + end)/2
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        val p = Point.screen(event!!.x, event!!.y, mCenterX, mCenterY)
+
+
+        textView.text = "Center: ($mCenterX, $mCenterY)\n" +
+                "Screen: (${p.x}, ${p.y})\n" +
+                "Polar: (${p.position}, ${p.distance})"
+
+        return true
     }
 
 

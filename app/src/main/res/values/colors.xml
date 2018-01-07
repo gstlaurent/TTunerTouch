@@ -10,4 +10,7 @@
     <color name="bluegrass">#ff96c9b5</color>
     <color name="turquoise">#ff86b9b5</color>
     <color name="slate">#ff76a9b5</color>
+
+    <color name="green">#ff00ff00</color>
+    <color name="amber">#ffffa800</color>
 </resources>
