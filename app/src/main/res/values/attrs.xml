@@ -1,14 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <attr name="labelColor" format="color"/>
+    <attr name="labelHeight" format="dimension"/>
+    <attr name="labelWidth" format="dimension"/>
+    <attr name="lineColor" format="color"/>
+    <attr name="lineThickness" format="dimension"/>
+    <attr name="dotColor" format="color"/>
+    <attr name="dotRadiusRatio" format="float"/>
+    <attr name="innerRadiusRatio" format="float"/>
+
     <declare-styleable name="NoteRing">
-        <attr name="labelColor" format="color"/>
-        <attr name="labelHeight" format="dimension"/>
-        <attr name="labelWidth" format="dimension"/>
-        <attr name="lineColor" format="color"/>
-        <attr name="lineThickness" format="dimension"/>
-        <attr name="dotColor" format="color"/>
-        <attr name="dotRadiusRatio" format="float"/>
-        <attr name="innerRadiusRatio" format="float"/>
+        <attr name="labelColor"/>
+        <attr name="labelHeight"/>
+        <attr name="labelWidth"/>
+        <attr name="lineColor"/>
+        <attr name="lineThickness"/>
+        <attr name="dotColor"/>
+        <attr name="dotRadiusRatio"/>
+        <attr name="innerRadiusRatio"/>
+    </declare-styleable>
+
+    <declare-styleable name="NoteCircle">
+        <attr name="labelColor"/>
+        <attr name="labelHeight"/>
+        <attr name="labelWidth"/>
+        <attr name="lineColor"/>
+        <attr name="lineThickness"/>
+        <attr name="dotColor"/>
+        <attr name="dotRadiusRatio"/>
+        <attr name="innerRadiusRatio"/>
     </declare-styleable>
 
     <!--<declare-styleable name="PieChart">-->

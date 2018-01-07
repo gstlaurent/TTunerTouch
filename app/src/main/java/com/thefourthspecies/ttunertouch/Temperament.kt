@@ -13,9 +13,7 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Relationship
+        if (other !is Relationship) return false
 
         if (note1 != other.note1) return false
         if (note2 != other.note2) return false

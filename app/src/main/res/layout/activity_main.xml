@@ -6,17 +6,37 @@
     android:layout_height="match_parent"
     tools:context="com.thefourthspecies.ttunertouch.MainActivity">
 
-    <com.thefourthspecies.ttunertouch.NoteRing
-        android:id="@+id/Notes"
+    <!--<com.thefourthspecies.ttunertouch.NoteRing-->
+        <!--android:id="@+id/NoteRing"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:background="@android:color/white"-->
+        <!--android:padding="10dp"-->
+        <!--app:innerRadiusRatio="0.67"-->
+        <!--app:labelColor="@android:color/black"-->
+        <!--app:dotColor="@android:color/black"-->
+        <!--app:dotRadiusRatio="0.05"-->
+        <!--app:labelHeight="20dp"-->
+        <!--app:labelWidth="20dp"-->
+        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--app:layout_constraintLeft_toLeftOf="parent"-->
+        <!--app:layout_constraintRight_toRightOf="parent"-->
+        <!--app:layout_constraintStart_toStartOf="parent"-->
+        <!--app:layout_constraintTop_toTopOf="parent"-->
+        <!--app:lineColor="@android:color/black"-->
+        <!--app:lineThickness="1dp" />-->
+
+    <com.thefourthspecies.ttunertouch.NoteCircle
+        android:id="@+id/NoteCircle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@android:color/white"
         android:padding="10dp"
-        app:innerRadiusRatio="0.67"
+        app:innerRadiusRatio="0.80"
         app:labelColor="@android:color/black"
         app:dotColor="@android:color/black"
         app:dotRadiusRatio="0.05"
-        app:labelHeight="20dp"
+        app:labelHeight="25dp"
         app:labelWidth="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"

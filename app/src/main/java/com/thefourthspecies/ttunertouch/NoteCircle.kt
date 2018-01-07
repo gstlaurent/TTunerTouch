@@ -10,17 +10,10 @@ import android.graphics.Paint
 import android.graphics.Rect
 
 
-const val FLAT = "♭" // U+267D
-const val SHARP = "♯" // U+266F
-
-//const val FLAT = "b" // U+266D
-//const val SHARP = "#" // U+266F
-
-
 /**
  * Created by Graham on 2017-12-25.
  */
-class NoteRing @JvmOverloads constructor(
+class NoteCircle @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
@@ -93,22 +86,20 @@ class NoteRing @JvmOverloads constructor(
 
     fun initTestData() {
         mNotes = mutableListOf(
-                Note(0.0, "A"),
-                Note(0.1, "B$FLAT"),
-                Note(0.2, "B"),
-                Note(0.25, "C"),
-                Note(0.3, "C$SHARP"),
-                Note(0.4, "D"),
-                Note(0.5, "E$FLAT"),
-                Note(0.6, "E"),
-                Note(0.7, "F"),
-                Note(0.75, "F$SHARP"),
-                Note(0.8, "G"),
-                Note(0.9, "A$FLAT")
+                Note(0/12.0, "C"),
+                Note(1/12.0, "G"),
+                Note(2/12.0, "D"),
+                Note(3/12.0, "A"),
+                Note(4/12.0, "E"),
+                Note(5/12.0, "B"),
+                Note(6/12.0, "F$SHARP"),
+                Note(7/12.0, "C$SHARP"),
+                Note(8/12.0, "A$FLAT"),
+                Note(9/12.0, "E$FLAT"),
+                Note(10/12.0, "B$FLAT"),
+                Note(11/12.0, "F")
         )
     }
-
-
 
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -127,7 +118,7 @@ class NoteRing @JvmOverloads constructor(
         mInnerRadius = mOuterRadius * mInnerRadiusRatio
         mDotRadius = mInnerRadius * mDotRadiusRatio
 
-        mLabelRadius = (mOuterRadius + mInnerRadius)/2
+        mLabelRadius = (3*mOuterRadius + mInnerRadius)/4f
         mCenterX = paddingLeft.toFloat() + mOuterRadius
         mCenterY = paddingTop.toFloat() + mOuterRadius
 
@@ -139,8 +130,6 @@ class NoteRing @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        // Draw the shadow
-        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mLinePaint)
         canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mLinePaint)
 
         val noteButtons: List<NoteButton> = calculateNoteButtons()
@@ -148,7 +137,6 @@ class NoteRing @JvmOverloads constructor(
             nb.draw(canvas)
         }
 
-//        drawTestImage(canvas)
     }
 
     private fun calculateNoteButtons(): List<NoteButton> {
@@ -171,7 +159,6 @@ class NoteRing @JvmOverloads constructor(
                 nbNext.startPosition = nextEdgePosition
             }
         }
-
         return noteButtons
     }
 
@@ -181,15 +168,14 @@ class NoteRing @JvmOverloads constructor(
 
 
     /**
-     * Edge: a radial line drawn only from the inner to outer radii
+     * Edge: a radial line drawn only to the inner radius
      *
      */
-    inner class Edge(val position: Double) {
-        val start = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
-        val end = Point.polar(position, mOuterRadius, mCenterX, mCenterY)
+    inner class Radial(val position: Double) {
+        val end = Point(position, mInnerRadius)
 
         fun draw(canvas: Canvas) {
-            canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
+            canvas.drawLine(mCenterX, mCenterY, end.x, end.y, mLinePaint)
         }
     }
 
@@ -198,7 +184,7 @@ class NoteRing @JvmOverloads constructor(
      * A circle drawn on the inner border
      */
     inner class Dot(val position: Double) {
-        val point = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
+        val point = Point(position, mInnerRadius)
 
         fun draw(canvas: Canvas) {
             canvas.drawCircle(point.x, point.y, mDotRadius, mDotPaint)
@@ -209,11 +195,15 @@ class NoteRing @JvmOverloads constructor(
      * The note name between the inner and outer borders
      */
     inner class Label (val position: Double, val text: String) {
-        val point = Point.polar(position, mLabelRadius, mCenterX, mCenterY)
+        val point = Point(position, mLabelRadius)
 
         fun draw(canvas: Canvas) {
             drawTextCentered(canvas, mLabelPaint, text, point.x, point.y)
         }
+    }
+
+    private fun Point(position: Double, distance: Float): Point {
+        return Point.polar(position, distance, mCenterX, mCenterY)
     }
 
      // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
@@ -238,54 +228,12 @@ class NoteRing @JvmOverloads constructor(
                 "NoteButton[$position, $name] has no width"
             }
             Dot(position).draw(canvas)
-            Edge(startPosition).draw(canvas)
-            Edge(endPosition).draw(canvas)
-
-            val labelPosition = average(startPosition, endPosition)
-            Label(labelPosition, name).draw(canvas)
+            Radial(position).draw(canvas)
+            Label(position, name).draw(canvas)
         }
 
 
     }
-
-    fun drawTestImage(canvas: Canvas) {
-        val n = 24
-        val u = 1.0 / n
-        var p = -1.0 / (2 * n)
-
-        var notes = Array<NoteButton>(n) {
-            var name = if (it % 2 == 0) {
-                "C$SHARP"
-            } else {
-                "B$FLAT"
-            }
-            val oldP = p
-            p += u
-            NoteButton(u*it, name, oldP, p)
-        }
-        for (nb in notes) {
-            nb.draw(canvas)
-        }
-
-
-
-
-
-
-//
-//        var i = 0
-//        while (i < n) {
-//            var t = if (i % 2 == 0) {
-//                "C$SHARP"
-//            } else {
-//                "B$FLAT"
-//            }
-//            Dot(u * i).draw(canvas)
-//            Label(u * i, t).draw(canvas)
-//            i++
-//        }
-    }
-
 
     /**
      * https://stackoverflow.com/questions/4909367/how-to-align-text-vertically
@@ -307,4 +255,3 @@ class NoteRing @JvmOverloads constructor(
         }
     }
 }
-
