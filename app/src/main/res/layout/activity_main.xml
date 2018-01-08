@@ -35,7 +35,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:background="@android:color/black"
-        android:text="TextView"
+        android:text=""
         android:textColor="@color/amber"
         app:layout_constraintBottom_toTopOf="@+id/noteCircle"
         app:layout_constraintEnd_toEndOf="parent"

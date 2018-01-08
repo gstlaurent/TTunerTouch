@@ -199,7 +199,7 @@ class NoteCircle @JvmOverloads constructor(
         super.onDraw(canvas)
 
 //        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
-        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
+//        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
 
         val noteButtons: List<NoteButton> = calculateNoteButtons()
         for (nb in noteButtons) {
@@ -210,17 +210,17 @@ class NoteCircle @JvmOverloads constructor(
             val end = Point(rel.note2.position, mInnerRadius)
             if (rel.isArc) {
                 val isFilled = true
-                drawArc(canvas, start.position, end.position, isFilled)
+                drawArc(canvas, start.screenAngle, end.screenAngle, isFilled)
             } else {
                 canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
             }
         }
     }
 
-    fun drawArc(canvas: Canvas, start: Double, end: Double, isFilled: Boolean) {
+    fun drawArc(canvas: Canvas, startAngle: Float, endAngle: Float, isFilled: Boolean) {
         // isEnclosed ... useCenter, stroked. See docs for drawArc
-
-        canvas.drawArc(mInnerCircleBounds,0f, 350f, false, mLinePaint)
+        val sweepAngle = endAngle - startAngle
+        canvas.drawArc(mInnerCircleBounds, startAngle, sweepAngle, false, mLinePaint)
     }
 
 
@@ -289,7 +289,6 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-
     /**
      * A circle drawn on the inner border
      */
@@ -336,7 +335,7 @@ class NoteCircle @JvmOverloads constructor(
             assert(startPosition != endPosition) {
                 "NoteButton[${note.position}, ${note.name}] has no width"
             }
-            Radial(note.position).draw(canvas, mHintPaint)
+//            Radial(note.position).draw(canvas, mHintPaint)
 //            Edge(startPosition).draw(canvas, mHintPaint)
 //            Edge(endPosition).draw(canvas, mHintPaint)
 
@@ -345,8 +344,6 @@ class NoteCircle @JvmOverloads constructor(
             }
             Label(note.position, note.name).draw(canvas, if (note.isHint) mHintLabelPaint else mLabelPaint)
         }
-
-
     }
 
     /**

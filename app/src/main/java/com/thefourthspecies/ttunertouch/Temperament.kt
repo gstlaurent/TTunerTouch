@@ -1,7 +1,12 @@
 package com.thefourthspecies.ttunertouch
 
-class Temper()
-
+enum class Comma(ratio: Double, val symbol: String) {
+    Pythagorean(531441.0/524288.0, "P"), // (12*P5)/(7*P8) = ((3/2)^12)/(2^7) = (3^12)/(2^19)
+    Syntonic(81.0/80.0, "S"), // (4*P5)/(1*M3+2*P8) = (3/2)^4/(5/4 * 2^2) = (3^4)/((2^4)*5)
+    Enharmonic(128.0/125.0, "E"), // P8/3*M3 = (2^12)/((5/4)^3) = (2^7)/(5^3)
+    Pure(1.0, "=")
+}
+data class Temper(val numerator: Int, val denominator: Int, val comma: Comma)
 
 /**
  * Two Relationships are considered equal if they contain the same notes, whether they are note2 or note1,
