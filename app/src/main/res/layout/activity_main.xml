@@ -52,7 +52,7 @@
         android:layout_marginTop="16dp"
         android:padding="10dp"
         app:dotColor="@android:color/black"
-        app:dotRadiusRatio="0.05"
+        app:dotRadiusRatio="0.03"
         app:innerRadiusRatio="0.80"
         app:labelColor="@android:color/black"
         app:labelHeight="25dp"
@@ -65,6 +65,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="1.0"
         app:lineColor="@android:color/black"
-        app:lineThickness="1dp" />
+        app:lineThickness="1dp"
+        app:hintColor="@color/grey"/>
 
 </android.support.constraint.ConstraintLayout>

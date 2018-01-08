@@ -19,6 +19,7 @@
         <attr name="dotColor"/>
         <attr name="dotRadiusRatio"/>
         <attr name="innerRadiusRatio"/>
+        <attr name="hintColor" format="color"/>
     </declare-styleable>
 
     <declare-styleable name="NoteCircle">

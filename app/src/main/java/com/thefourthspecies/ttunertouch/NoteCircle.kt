@@ -32,11 +32,14 @@ class NoteCircle @JvmOverloads constructor(
     private var mDotColor: Int by attributable(0)
     private var mDotRadiusRatio: Float by attributable(0.0f) // Dot Radius to Inner Radius
     private var mInnerRadiusRatio: Float by attributable(0.0f) // Inner Radius to Outer Radius
+    private var mHintColor: Int by attributable(0)
 
     // Paint Objects
     lateinit var mLinePaint: Paint
     lateinit var mLabelPaint: Paint
     lateinit var mDotPaint: Paint
+    lateinit var mHintPaint: Paint
+    lateinit var mHintLabelPaint: Paint
 
     // Dimensions
     private val _textBounds = Rect() // For centering labels
@@ -47,8 +50,8 @@ class NoteCircle @JvmOverloads constructor(
     private var mCenterX = 0.0f
     private var mCenterY = 0.0f
 
-    // Note Data
-    data class Note(val position: Double, val name: String)
+    // Temperament Data
+    data class Note(val position: Double, val name: String, var isHint: Boolean = false)
     var mNotes: MutableList<Note> = mutableListOf()
 
     lateinit var textView: TextView
@@ -68,11 +71,13 @@ class NoteCircle @JvmOverloads constructor(
             mDotColor = a.getColor(R.styleable.NoteRing_dotColor, -0x1000000)
             mDotRadiusRatio = a.getFloat(R.styleable.NoteRing_dotRadiusRatio, 0.0f)
             mInnerRadiusRatio = a.getFloat(R.styleable.NoteRing_innerRadiusRatio, 0.5f)
+            mHintColor = a.getColor(R.styleable.NoteRing_hintColor, -0x1000000)
         } finally {
             a.recycle()
         }
 
         initPaint()
+        initHintData()
 
         initTestData()
     }
@@ -89,22 +94,50 @@ class NoteCircle @JvmOverloads constructor(
 
         mDotPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         mDotPaint.color = mDotColor
+
+        mHintPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mHintPaint.color = mHintColor
+        mHintPaint.style = Paint.Style.STROKE
+        mHintPaint.strokeWidth = mLineThickness
+
+        mHintLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mHintLabelPaint.textSize = mLabelHeight
+        mHintLabelPaint.color = mHintColor
+    }
+
+    fun initHintData() {
+        val isHint = true
+        mNotes = mutableListOf(
+                Note(0/12.0, "C", isHint),
+                Note(1/12.0, "G", isHint),
+                Note(2/12.0, "D", isHint),
+                Note(3/12.0, "A", isHint),
+                Note(4/12.0, "E", isHint),
+                Note(5/12.0, "B", isHint),
+                Note(6/12.0, "F$SHARP", isHint),
+                Note(7/12.0, "C$SHARP", isHint),
+                Note(8/12.0, "A$FLAT", isHint),
+                Note(9/12.0, "E$FLAT", isHint),
+                Note(10/12.0, "B$FLAT", isHint),
+                Note(11/12.0, "F", isHint)
+        )
     }
 
     fun initTestData() {
+        val isHint = true
         mNotes = mutableListOf(
-                Note(0/12.0, "C"),
-                Note(1/12.0, "G"),
-                Note(2/12.0, "D"),
-                Note(3/12.0, "A"),
-                Note(4/12.0, "E"),
-                Note(5/12.0, "B"),
-                Note(6/12.0, "F$SHARP"),
-                Note(7/12.0, "C$SHARP"),
-                Note(8/12.0, "A$FLAT"),
-                Note(9/12.0, "E$FLAT"),
-                Note(10/12.0, "B$FLAT"),
-                Note(11/12.0, "F")
+                Note(0/12.0, "C", !isHint),
+                Note(1/12.0, "G", isHint),
+                Note(2/12.0, "D", isHint),
+                Note(3/12.0, "A", isHint),
+                Note(4/12.0, "E", !isHint),
+                Note(5/12.0, "B", isHint),
+                Note(6/12.0, "F$SHARP", isHint),
+                Note(7/12.0, "C$SHARP", isHint),
+                Note(8/12.0, "A$FLAT", isHint),
+                Note(9/12.0, "E$FLAT", isHint),
+                Note(10/12.0, "B$FLAT", isHint),
+                Note(11/12.0, "F", isHint)
         )
     }
 
@@ -137,7 +170,8 @@ class NoteCircle @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mLinePaint)
+//        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
+        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
 
         val noteButtons: List<NoteButton> = calculateNoteButtons()
         for (nb in noteButtons) {
@@ -148,20 +182,20 @@ class NoteCircle @JvmOverloads constructor(
 
     private fun calculateNoteButtons(): List<NoteButton> {
         val noteButtons = mutableListOf<NoteButton>()
-        mNotes.mapTo(noteButtons) { NoteButton(it.position, it.name) }
-        noteButtons.sortBy { it.position }
+        mNotes.mapTo(noteButtons) { NoteButton(it) }
+        noteButtons.sortBy { it.note.position }
 
         if (noteButtons.size > 1) {
             var nbCurr: NoteButton = noteButtons.last()
             var nbNext: NoteButton = noteButtons[0]
-            var nextEdgePosition = average(1.0, nbCurr.position)
+            var nextEdgePosition = average(1.0, nbCurr.note.position)
             nbCurr.endPosition = nextEdgePosition
             nbNext.startPosition = nextEdgePosition - 1 // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
 
             for (i in 0..noteButtons.size - 2) {
                 var nbCurr = noteButtons[i]
                 var nbNext = noteButtons[i+1]
-                nextEdgePosition = average(nbCurr.position, nbNext.position)
+                nextEdgePosition = average(nbCurr.note.position, nbNext.note.position)
                 nbCurr.endPosition = nextEdgePosition
                 nbNext.startPosition = nextEdgePosition
             }
@@ -184,16 +218,28 @@ class NoteCircle @JvmOverloads constructor(
         return true
     }
 
+    /**
+     * Edge: a radial line drawn only from the inner to outer radii
+     *
+     */
+    inner class Edge(val position: Double) {
+        val start = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
+        val end = Point.polar(position, mOuterRadius, mCenterX, mCenterY)
+
+        fun draw(canvas: Canvas, paint: Paint) {
+            canvas.drawLine(start.x, start.y, end.x, end.y, paint)
+        }
+    }
 
     /**
-     * Edge: a radial line drawn only to the inner radius
+     * Radial: a radial line drawn only to the inner radius
      *
      */
     inner class Radial(val position: Double) {
         val end = Point(position, mInnerRadius)
 
-        fun draw(canvas: Canvas) {
-            canvas.drawLine(mCenterX, mCenterY, end.x, end.y, mLinePaint)
+        fun draw(canvas: Canvas, paint: Paint) {
+            canvas.drawLine(mCenterX, mCenterY, end.x, end.y, paint)
         }
     }
 
@@ -204,8 +250,8 @@ class NoteCircle @JvmOverloads constructor(
     inner class Dot(val position: Double) {
         val point = Point(position, mInnerRadius)
 
-        fun draw(canvas: Canvas) {
-            canvas.drawCircle(point.x, point.y, mDotRadius, mDotPaint)
+        fun draw(canvas: Canvas, paint: Paint) {
+            canvas.drawCircle(point.x, point.y, mDotRadius, paint)
         }
     }
 
@@ -215,8 +261,8 @@ class NoteCircle @JvmOverloads constructor(
     inner class Label (val position: Double, val text: String) {
         val point = Point(position, mLabelRadius)
 
-        fun draw(canvas: Canvas) {
-            drawTextCentered(canvas, mLabelPaint, text, point.x, point.y)
+        fun draw(canvas: Canvas, paint: Paint) {
+            drawTextCentered(canvas, paint, text, point.x, point.y)
         }
     }
 
@@ -227,27 +273,31 @@ class NoteCircle @JvmOverloads constructor(
      // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
     /**
      * A button along the NoteRing. Positions are ratio of 360 degrees along the ring, starting at the top.
-     * @position the location of the Dot
-     * @name the label within the button
-     * @startPosition the edge of the button prior to the Dot
-     * @endPosition the edge of the button after the Dot
+     * @note the note associated with this button
+     * @startPosition the edge of the button prior to the position
+     * @endPosition the edge of the button after the position
      */
-    inner class NoteButton(val position: Double, val name: String,
+    inner class NoteButton(val note: Note,
                            var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
 
         init {
-            assert(0.0 <= position && position <= 1.0) {
-                "NoteButton[$position, $name]: 'position' must be from 0 to 1."
+            assert(0.0 <= note.position && note.position <= 1.0) {
+                "NoteButton[${note.position}, ${note.name}]: 'position' must be from 0 to 1."
             }
         }
 
         fun draw(canvas: Canvas) {
             assert(startPosition != endPosition) {
-                "NoteButton[$position, $name] has no width"
+                "NoteButton[${note.position}, ${note.name}] has no width"
             }
-            Dot(position).draw(canvas)
-            Radial(position).draw(canvas)
-            Label(position, name).draw(canvas)
+            Radial(note.position).draw(canvas, mHintPaint)
+//            Edge(startPosition).draw(canvas, mHintPaint)
+//            Edge(endPosition).draw(canvas, mHintPaint)
+
+            if (!note.isHint) {
+                Dot(note.position).draw(canvas, mDotPaint)
+            }
+            Label(note.position, note.name).draw(canvas, if (note.isHint) mHintLabelPaint else mLabelPaint)
         }
 
 
