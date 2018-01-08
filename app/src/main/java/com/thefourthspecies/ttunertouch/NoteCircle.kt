@@ -8,6 +8,7 @@ import kotlin.properties.Delegates
 import kotlin.properties.ReadWriteProperty
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.RectF
 import android.view.MotionEvent
 import android.widget.TextView
 import android.support.v4.view.MotionEventCompat
@@ -49,10 +50,13 @@ class NoteCircle @JvmOverloads constructor(
     private var mLabelRadius = 0.0f
     private var mCenterX = 0.0f
     private var mCenterY = 0.0f
+    private var mInnerCircleBounds = RectF()
 
     // Temperament Data
     data class Note(val position: Double, val name: String, var isHint: Boolean = false)
-    var mNotes: MutableList<Note> = mutableListOf()
+    var mNotes: MutableSet<Note> = mutableSetOf()
+    data class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean)
+    var mRelationships: MutableSet<Relationship> = mutableSetOf()
 
     lateinit var textView: TextView
 
@@ -107,7 +111,7 @@ class NoteCircle @JvmOverloads constructor(
 
     fun initHintData() {
         val isHint = true
-        mNotes = mutableListOf(
+        mNotes = mutableSetOf(
                 Note(0/12.0, "C", isHint),
                 Note(1/12.0, "G", isHint),
                 Note(2/12.0, "D", isHint),
@@ -124,20 +128,36 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     fun initTestData() {
-        val isHint = true
-        mNotes = mutableListOf(
-                Note(0/12.0, "C", !isHint),
-                Note(1/12.0, "G", isHint),
-                Note(2/12.0, "D", isHint),
-                Note(3/12.0, "A", isHint),
-                Note(4/12.0, "E", !isHint),
-                Note(5/12.0, "B", isHint),
-                Note(6/12.0, "F$SHARP", isHint),
-                Note(7/12.0, "C$SHARP", isHint),
-                Note(8/12.0, "A$FLAT", isHint),
-                Note(9/12.0, "E$FLAT", isHint),
-                Note(10/12.0, "B$FLAT", isHint),
-                Note(11/12.0, "F", isHint)
+        // Kirnberger III-esque
+        val C = Note(0/12.0, "C")
+        val G =  Note(1/12.0, "G")
+        val D =  Note(2/12.0, "D")
+        val A =  Note(3/12.0, "A")
+        val E =  Note(4/12.0, "E")
+        val B =  Note(5/12.0, "B")
+        val Fs =  Note(6/12.0, "F$SHARP")
+        val Df =  Note(7/12.0, "D$FLAT")
+        val Af =  Note(8/12.0, "A$FLAT")
+        val Ef =  Note(9/12.0, "E$FLAT")
+        val Bf =  Note(10/12.0, "B$FLAT")
+        val F =  Note(11/12.0, "F")
+
+        mNotes = mutableSetOf(C, G, D, A, E, B, Fs, Df, Af, Ef, Bf, F)
+
+        val isArc = true
+        mRelationships = mutableSetOf(
+                Relationship(C, E, "", !isArc),
+                Relationship(C, G, "-1/4S", !isArc),
+                Relationship(G, D, "-1/4S", !isArc),
+                Relationship(D, A, "-1/4S", !isArc),
+                Relationship(A, E, "-1/4S", !isArc),
+                Relationship(E, B, "", isArc),
+                Relationship(B, Fs, "", isArc),
+                Relationship(C, F, "", isArc),
+                Relationship(F, Bf, "", isArc),
+                Relationship(Bf, Ef, "", isArc),
+                Relationship(Ef, Af, "", isArc),
+                Relationship(Af, Df, "", isArc)
         )
     }
 
@@ -162,6 +182,14 @@ class NoteCircle @JvmOverloads constructor(
         mCenterX = paddingLeft.toFloat() + mOuterRadius
         mCenterY = paddingTop.toFloat() + mOuterRadius
 
+        val radiusDiff = mOuterRadius - mInnerRadius
+        mInnerCircleBounds = RectF(
+                0.0f,
+                0.0f,
+                mInnerRadius*2,
+                mInnerRadius*2)
+        mInnerCircleBounds.offsetTo(paddingLeft.toFloat() + radiusDiff,
+                paddingTop.toFloat() + radiusDiff)
 
 //        onDataChanged()
     }
@@ -177,8 +205,24 @@ class NoteCircle @JvmOverloads constructor(
         for (nb in noteButtons) {
             nb.draw(canvas)
         }
-
+        for (rel in mRelationships) {
+            val start = Point(rel.note1.position, mInnerRadius)
+            val end = Point(rel.note2.position, mInnerRadius)
+            if (rel.isArc) {
+                val isFilled = true
+                drawArc(canvas, start.position, end.position, isFilled)
+            } else {
+                canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
+            }
+        }
     }
+
+    fun drawArc(canvas: Canvas, start: Double, end: Double, isFilled: Boolean) {
+        // isEnclosed ... useCenter, stroked. See docs for drawArc
+
+        canvas.drawArc(mInnerCircleBounds,0f, 350f, false, mLinePaint)
+    }
+
 
     private fun calculateNoteButtons(): List<NoteButton> {
         val noteButtons = mutableListOf<NoteButton>()
@@ -193,8 +237,8 @@ class NoteCircle @JvmOverloads constructor(
             nbNext.startPosition = nextEdgePosition - 1 // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
 
             for (i in 0..noteButtons.size - 2) {
-                var nbCurr = noteButtons[i]
-                var nbNext = noteButtons[i+1]
+                nbCurr = noteButtons[i]
+                nbNext = noteButtons[i+1]
                 nextEdgePosition = average(nbCurr.note.position, nbNext.note.position)
                 nbCurr.endPosition = nextEdgePosition
                 nbNext.startPosition = nextEdgePosition
@@ -211,10 +255,12 @@ class NoteCircle @JvmOverloads constructor(
         val p = Point.screen(event!!.x, event!!.y, mCenterX, mCenterY)
 
 
-        textView.text = "Center: ($mCenterX, $mCenterY)\n" +
-                "Screen: (${p.x}, ${p.y})\n" +
-                "Polar: (${p.position}, ${p.distance})"
-
+        textView.text = """
+            |Center: ($mCenterX, $mCenterY)
+            |Screen: (${p.x}, ${p.y})
+            |Polar: (${p.position}, ${p.distance})
+            |ScreenAngle: ${p.screenAngle}
+            """.trimMargin()
         return true
     }
 

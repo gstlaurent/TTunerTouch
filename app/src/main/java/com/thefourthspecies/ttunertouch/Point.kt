@@ -2,7 +2,7 @@ package com.thefourthspecies.ttunertouch
 
 /**
  * Point: represents a location in two ways:
- *  1. modified polar coordinates based
+ *  1. clock: modified polar coordinates based
  *      - middle of view is origin (centerX, centerY)
  *      - vertical is 0
  *      - @position: a number from 0 to 1 representing ratio between vertical and 360 degrees
@@ -26,6 +26,11 @@ class Point {
         private set
     var y: Float = 0.0f
         private set
+    val screenAngle: Float
+        get() {
+            val theta: Float = ((position - 0.25) * 360).toFloat()
+            return if (theta < 0) { theta + 360f } else theta
+        }
 
     companion object {
         fun polar(position: Double, distance: Float, centerX: Float, centerY: Float): Point {
@@ -72,3 +77,38 @@ class Point {
         return centerY - yy.toFloat()
     }
 }
+
+//
+//        private set
+//    var screenAngle: Float = 0.0f
+//        private set
+//
+//
+//
+//    companion object {
+//        fun polar(position: Double, distance: Float, centerX: Float, centerY: Float): Point {
+//            val point = Point()
+//            val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
+//            point.position = position
+//            point.distance = distance
+//            point.x = point.calcX(theta, distance, centerX)
+//            point.y = point.calcY(theta, distance, centerY)
+//            point.screenAngle = 360f - theta.toFloat()
+//            return point
+//        }
+//
+//        fun screen(x: Float, y: Float, centerX: Float, centerY: Float): Point {
+//            val point = Point()
+//            val xx = (x - centerX).toDouble()
+//            val yy = (centerY - y).toDouble()
+//            val theta = Math.atan2(yy, xx)
+//
+//            point.position = point.calcPosition(theta)
+//            point.distance = Math.sqrt(xx * xx + yy * yy).toFloat()
+//            point.x = x
+//            point.y = y
+//            point.screenAngle = 360f - (theta * (360.0/2*Math.PI)).toFloat()
+//            return point
+//        }
+//    }
+
