@@ -57,6 +57,8 @@ class NoteCircle @JvmOverloads constructor(
     var mNotes: MutableSet<Note> = mutableSetOf()
     data class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean)
     var mRelationships: MutableSet<Relationship> = mutableSetOf()
+    data class Sector(val startPosition: Double, val endPosition: Double) // Direction is Clockwise
+    var mSectors: MutableSet<Sector> = mutableSetOf()
 
     lateinit var textView: TextView
 
@@ -159,6 +161,11 @@ class NoteCircle @JvmOverloads constructor(
                 Relationship(Ef, Af, "", isArc),
                 Relationship(Af, Df, "", isArc)
         )
+
+        mSectors = mutableSetOf(
+                Sector(Ef.position, Bf.position),
+                Sector(Bf.position, F.position)
+        )
     }
 
 
@@ -215,8 +222,20 @@ class NoteCircle @JvmOverloads constructor(
                 canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
             }
         }
+
+        for (sec in mSectors) {
+            val start = Point(sec.startPosition, mInnerRadius)
+            val end = Point(sec.endPosition, mInnerRadius)
+            val diffAngle = end.screenAngle - start.screenAngle
+            val sweepAngle = if (diffAngle < 0) { diffAngle + 360f } else diffAngle
+            val useCenter = true
+            canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, useCenter, mDotPaint)
+        }
     }
 
+    /**
+     * Start and End are assuming clockwise direction
+     */
     fun drawArc(canvas: Canvas, startAngle: Float, endAngle: Float, isFilled: Boolean) {
         // isEnclosed ... useCenter, stroked. See docs for drawArc
         val sweepAngle = endAngle - startAngle
