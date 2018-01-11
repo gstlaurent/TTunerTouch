@@ -17,15 +17,7 @@ package com.thefourthspecies.ttunertouch
  *
  *
  */
-class Point {
-    var position: Double = 0.0
-        private set
-    var distance: Float = 0.0f
-        private set
-    var x: Float = 0.0f
-        private set
-    var y: Float = 0.0f
-        private set
+data class Point private constructor(val position: Double, val distance: Float, val x: Float, val y: Float) {
     val screenAngle: Float
         get() {
             val theta: Float = ((position - 0.25) * 360).toFloat()
@@ -34,47 +26,42 @@ class Point {
 
     companion object {
         fun polar(position: Double, distance: Float, centerX: Float, centerY: Float): Point {
-            val point = Point()
             val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
-            point.position = position
-            point.distance = distance
-            point.x = point.calcX(theta, distance, centerX)
-            point.y = point.calcY(theta, distance, centerY)
+            val x = calcX(theta, distance, centerX)
+            val y = calcY(theta, distance, centerY)
+            val point = Point(position, distance, x, y)
             return point
         }
 
         fun screen(x: Float, y: Float, centerX: Float, centerY: Float): Point {
-            val point = Point()
             val xx = (x - centerX).toDouble()
             val yy = (centerY - y).toDouble()
-
-            point.position = point.calcPosition(yy, xx)
-            point.distance = Math.sqrt(xx * xx + yy * yy).toFloat()
-            point.x = x
-            point.y = y
+            val position = calcPosition(yy, xx)
+            val distance = Math.sqrt(xx * xx + yy * yy).toFloat()
+            val point = Point(position, distance, x, y)
             return point
         }
-    }
 
-    private fun calcPosition(yy: Double, xx: Double): Double {
-        val theta = Math.atan2(yy, xx)
-        val pos = (Math.PI / 2 - theta) / (Math.PI * 2)
-        val posBounded = when {
-            pos < 0 -> pos + 1
-            pos > 1 -> pos - 1
-            else -> pos
+        private fun calcX(theta: Double, distance: Float, centerX: Float): Float {
+            val xx = distance * Math.cos(theta).toFloat()
+            return centerX + xx.toFloat()
         }
-        return posBounded
-    }
 
-    private fun calcX(theta: Double, distance: Float, centerX: Float): Float {
-        val xx = distance * Math.cos(theta).toFloat()
-        return centerX + xx.toFloat()
-    }
+        private fun calcY(theta: Double, distance: Float, centerY: Float): Float {
+            val yy = distance * Math.sin(theta).toFloat()
+            return centerY - yy.toFloat()
+        }
 
-    private fun calcY(theta: Double, distance: Float, centerY: Float): Float {
-        val yy = distance * Math.sin(theta).toFloat()
-        return centerY - yy.toFloat()
+        private fun calcPosition(yy: Double, xx: Double): Double {
+            val theta = Math.atan2(yy, xx)
+            val pos = (Math.PI / 2 - theta) / (Math.PI * 2)
+            val posBounded = when {
+                pos < 0 -> pos + 1
+                pos > 1 -> pos - 1
+                else -> pos
+            }
+            return posBounded
+        }
     }
 }
 
