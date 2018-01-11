@@ -11,8 +11,6 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.widget.TextView
-import android.support.v4.view.MotionEventCompat
-import android.util.Log
 
 const val DEBUG_TAG = "TTuner"
 
@@ -41,6 +39,8 @@ class NoteCircle @JvmOverloads constructor(
     lateinit var mDotPaint: Paint
     lateinit var mHintPaint: Paint
     lateinit var mHintLabelPaint: Paint
+    lateinit var mSectorPaint: Paint
+
 
     // Dimensions
     private val _textBounds = Rect() // For centering labels
@@ -53,12 +53,11 @@ class NoteCircle @JvmOverloads constructor(
     private var mInnerCircleBounds = RectF()
 
     // Temperament Data
-    data class Note(val position: Double, val name: String, var isHint: Boolean = false)
-    var mNotes: MutableSet<Note> = mutableSetOf()
-    data class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean)
     var mRelationships: MutableSet<Relationship> = mutableSetOf()
-    data class Sector(val startPosition: Double, val endPosition: Double) // Direction is Clockwise
-    var mSectors: MutableSet<Sector> = mutableSetOf()
+
+    var mNotes: MutableSet<Note> = mutableSetOf()
+
+    var mIntervalSectors: MutableSet<IntervalSector> = mutableSetOf()
 
     lateinit var textView: TextView
 
@@ -109,6 +108,8 @@ class NoteCircle @JvmOverloads constructor(
         mHintLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
         mHintLabelPaint.textSize = mLabelHeight
         mHintLabelPaint.color = mHintColor
+
+        mSectorPaint = mDotPaint // TODO
     }
 
     fun initHintData() {
@@ -162,9 +163,9 @@ class NoteCircle @JvmOverloads constructor(
                 Relationship(Af, Df, "", isArc)
         )
 
-        mSectors = mutableSetOf(
-                Sector(Ef.position, Bf.position),
-                Sector(Bf.position, F.position)
+        mIntervalSectors = mutableSetOf(
+                IntervalSector(Ef, Bf),
+                IntervalSector(Bf, F)
         )
     }
 
@@ -202,42 +203,11 @@ class NoteCircle @JvmOverloads constructor(
     }
 
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-
-//        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
-//        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
-
-        val noteButtons: List<NoteButton> = calculateNoteButtons()
-        for (nb in noteButtons) {
-            nb.draw(canvas)
-        }
-        for (rel in mRelationships) {
-            val start = Point(rel.note1.position, mInnerRadius)
-            val end = Point(rel.note2.position, mInnerRadius)
-            if (rel.isArc) {
-                val isFilled = true
-                drawArc(canvas, start.screenAngle, end.screenAngle, isFilled)
-            } else {
-                canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
-            }
-        }
-
-        for (sec in mSectors) {
-            val start = Point(sec.startPosition, mInnerRadius)
-            val end = Point(sec.endPosition, mInnerRadius)
-            val diffAngle = end.screenAngle - start.screenAngle
-            val sweepAngle = if (diffAngle < 0) { diffAngle + 360f } else diffAngle
-            val useCenter = true
-            canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, useCenter, mDotPaint)
-        }
-    }
 
     /**
      * Start and End are assuming clockwise direction
      */
-    fun drawArc(canvas: Canvas, startAngle: Float, endAngle: Float, isFilled: Boolean) {
-        // isEnclosed ... useCenter, stroked. See docs for drawArc
+    fun drawArc(canvas: Canvas, startAngle: Float, endAngle: Float) {
         val sweepAngle = endAngle - startAngle
         canvas.drawArc(mInnerCircleBounds, startAngle, sweepAngle, false, mLinePaint)
     }
@@ -253,7 +223,7 @@ class NoteCircle @JvmOverloads constructor(
             var nbNext: NoteButton = noteButtons[0]
             var nextEdgePosition = average(1.0, nbCurr.note.position)
             nbCurr.endPosition = nextEdgePosition
-            nbNext.startPosition = nextEdgePosition - 1 // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
+            nbNext.startPosition = nextEdgePosition - 1 // Start position must be smaller than endNote position to ensure button boundaries for ring's minor segment
 
             for (i in 0..noteButtons.size - 2) {
                 nbCurr = noteButtons[i]
@@ -281,6 +251,115 @@ class NoteCircle @JvmOverloads constructor(
             |ScreenAngle: ${p.screenAngle}
             """.trimMargin()
         return true
+    }
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+
+//        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
+//        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
+
+        for (note in mNotes) {
+            note.draw(canvas)
+        }
+
+        for (rel in mRelationships) {
+            rel.draw(canvas)
+        }
+
+        for (sec in mIntervalSectors) {
+            sec.draw(canvas)
+        }
+    }
+
+    inner class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean) {
+
+        fun draw(canvas: Canvas) {
+            val start = Point(note1.position, mInnerRadius)
+            val end = Point(note2.position, mInnerRadius)
+            if (isArc) {
+                drawArc(canvas, start.screenAngle, end.screenAngle)
+            } else {
+                canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
+            }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Relationship) return false
+
+            if (note1 != other.note1) return false
+            if (note2 != other.note2) return false
+            if (label != other.label) return false
+            if (isArc != other.isArc) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = note1.hashCode()
+            result = 31 * result + note2.hashCode()
+            result = 31 * result + label.hashCode()
+            result = 31 * result + isArc.hashCode()
+            return result
+        }
+    }
+
+    inner class Note(val position: Double, val name: String, var isHint: Boolean = false) {
+
+        fun draw(canvas: Canvas) {
+            val dot = Dot(position)
+            val label = Label(position, name)
+            if (!isHint) {
+                dot.draw(canvas, mDotPaint)
+            }
+            label.draw(canvas, if (isHint) mHintLabelPaint else mLabelPaint)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Note) return false
+
+            if (position != other.position) return false
+            if (name != other.name) return false
+            if (isHint != other.isHint) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = position.hashCode()
+            result = 31 * result + name.hashCode()
+            result = 31 * result + isHint.hashCode()
+            return result
+        }
+    }
+
+    inner class IntervalSector(val startNote: Note, val endNote: Note) { // Direction is Clockwise
+
+        fun draw(canvas: Canvas) {
+            val start = Point(startNote.position, mInnerRadius)
+            val end = Point(endNote.position, mInnerRadius)
+            val diffAngle = end.screenAngle - start.screenAngle
+            val sweepAngle = if (diffAngle < 0) { diffAngle + 360f } else diffAngle
+            val isFilled = true
+            canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isFilled, mSectorPaint)
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is IntervalSector) return false
+
+            if (startNote != other.startNote) return false
+            if (endNote != other.endNote) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = startNote.hashCode()
+            result = 31 * result + endNote.hashCode()
+            return result
+        }
     }
 
     /**
@@ -334,7 +413,7 @@ class NoteCircle @JvmOverloads constructor(
         return Point.polar(position, distance, mCenterX, mCenterY)
     }
 
-     // Start position must be smaller than end position to ensure button boundaries for ring's minor segment
+     // Start position must be smaller than endNote position to ensure button boundaries for ring's minor segment
     /**
      * A button along the NoteRing. Positions are ratio of 360 degrees along the ring, starting at the top.
      * @note the note associated with this button
