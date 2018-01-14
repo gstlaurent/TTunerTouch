@@ -1,16 +1,15 @@
 package com.thefourthspecies.ttunertouch
 
 import android.content.Context
-import android.graphics.Canvas
+import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import kotlin.properties.Delegates
 import kotlin.properties.ReadWriteProperty
-import android.graphics.Paint
-import android.graphics.Rect
-import android.graphics.RectF
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.TextView
+import android.util.Log
 
 const val DEBUG_TAG = "TTuner"
 
@@ -53,13 +52,20 @@ class NoteCircle @JvmOverloads constructor(
     private var mInnerCircleBounds = RectF()
 
     // Temperament Data
-    var mRelationships: MutableSet<Relationship> = mutableSetOf()
+    private var mRelationships: MutableSet<Relationship> = mutableSetOf()
 
-    var mNotes: MutableSet<Note> = mutableSetOf()
+    private var mNotes: MutableSet<Note> = mutableSetOf()
+    var notes: MutableSet<Note>
+        get() = mNotes
+        set(value) {
+            mNotes = value
+            onDataChange()
+        }
 
-    var mIntervalSectors: MutableSet<IntervalSector> = mutableSetOf()
+    var mSectors: List<IntervalSector> = listOf()
 
     lateinit var textView: TextView
+    lateinit var mDetector: GestureDetector
 
 
     init {
@@ -80,6 +86,8 @@ class NoteCircle @JvmOverloads constructor(
         } finally {
             a.recycle()
         }
+        // Create a gesture detector to handle onTouch messages
+        mDetector = GestureDetector(getContext(), GestureListener())
 
         initPaint()
         initHintData()
@@ -109,7 +117,9 @@ class NoteCircle @JvmOverloads constructor(
         mHintLabelPaint.textSize = mLabelHeight
         mHintLabelPaint.color = mHintColor
 
-        mSectorPaint = mDotPaint // TODO
+        mSectorPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mSectorPaint.color = Color.BLUE // todo
+        mSectorPaint.style = Paint.Style.FILL
     }
 
     fun initHintData() {
@@ -163,10 +173,10 @@ class NoteCircle @JvmOverloads constructor(
                 Relationship(Af, Df, "", isArc)
         )
 
-        mIntervalSectors = mutableSetOf(
-                IntervalSector(Ef, Bf),
-                IntervalSector(Bf, F)
-        )
+//        mSectors = mutableListOf(
+//                IntervalSector(Ef, Bf),
+//                IntervalSector(Bf, F)
+//        )
     }
 
 
@@ -199,7 +209,29 @@ class NoteCircle @JvmOverloads constructor(
         mInnerCircleBounds.offsetTo(paddingLeft.toFloat() + radiusDiff,
                 paddingTop.toFloat() + radiusDiff)
 
-//        onDataChanged()
+        for (rel in mRelationships) rel.setDistanceFromCenter(mInnerRadius)
+
+        onDataChange()
+    }
+
+    private fun onDataChange() {
+        mSectors = generateIntervalSectors()
+    }
+
+    private fun generateIntervalSectors(): List<IntervalSector> {
+        val notes = mNotes.toMutableList()
+        notes.sortBy { it.position }
+
+        val sectors = mutableListOf<IntervalSector>()
+        if (notes.size > 0) {
+            var prev = notes.last()
+
+            for (curr in notes) {
+                sectors.add(IntervalSector(prev, curr))
+                prev = curr
+            }
+        }
+        return sectors
     }
 
 
@@ -242,46 +274,60 @@ class NoteCircle @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         val p = Point.screen(event!!.x, event!!.y, mCenterX, mCenterY)
-
-
+        Log.d(DEBUG_TAG, "TouchEvent: position:${p.position}, distance:${p.distance}")
         textView.text = """
             |Center: ($mCenterX, $mCenterY)
             |Screen: (${p.x}, ${p.y})
             |Polar: (${p.position}, ${p.distance})
             |ScreenAngle: ${p.screenAngle}
             """.trimMargin()
+
+        // Let the GestureDetector interpret this event
+        val result: Boolean = mDetector.onTouchEvent(event);
+        if (!result) {
+            return super.onTouchEvent(event)
+        }
         return true
     }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
 //        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
 //        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
 
-        for (note in mNotes) {
-            note.draw(canvas)
+        for (sec in mSectors) {
+            sec.draw(canvas)
         }
 
         for (rel in mRelationships) {
             rel.draw(canvas)
         }
 
-        for (sec in mIntervalSectors) {
-            sec.draw(canvas)
+        for (note in mNotes) {
+            note.draw(canvas)
         }
+
     }
 
     inner class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean) {
+        var start = Point(note1.position, mInnerRadius)
+        var end = Point(note2.position, mInnerRadius)
+
+        fun setDistanceFromCenter(radius: Float) {
+            start = Point(note1.position, radius)
+            end = Point(note2.position, radius)
+        }
 
         fun draw(canvas: Canvas) {
-            val start = Point(note1.position, mInnerRadius)
-            val end = Point(note2.position, mInnerRadius)
             if (isArc) {
                 drawArc(canvas, start.screenAngle, end.screenAngle)
             } else {
                 canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
             }
         }
+
+
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -304,7 +350,15 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-    inner class Note(val position: Double, val name: String, var isHint: Boolean = false) {
+    inner class Note(position: Double, val name: String, var isHint: Boolean = false) {
+        val position: Double = run {
+            var pos = position % 1
+            if (pos < 0) { pos + 1 } else pos
+        }
+
+        init {
+            assert(0.0 <= this.position && this.position < 1.0)
+        }
 
         fun draw(canvas: Canvas) {
             val dot = Dot(position)
@@ -334,15 +388,27 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-    inner class IntervalSector(val startNote: Note, val endNote: Note) { // Direction is Clockwise
+    inner class IntervalSector(val startNote: Note, val endNote: Note, var isSelected: Boolean = false) { // Direction is Clockwise
+        var start = Point(startNote.position, mInnerRadius)
+        var end = Point(endNote.position, mInnerRadius)
+        val sweepAngle: Float = run {
+            val diffAngle = end.screenAngle - start.screenAngle
+            if (diffAngle < 0) {
+                diffAngle + 360f
+            } else diffAngle
+        }
+
+        fun setDistanceFromCenter(radius: Float) {
+            start = Point(startNote.position, radius)
+            end = Point(endNote.position, radius)
+        }
 
         fun draw(canvas: Canvas) {
-            val start = Point(startNote.position, mInnerRadius)
-            val end = Point(endNote.position, mInnerRadius)
-            val diffAngle = end.screenAngle - start.screenAngle
-            val sweepAngle = if (diffAngle < 0) { diffAngle + 360f } else diffAngle
-            val isFilled = true
-            canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isFilled, mSectorPaint)
+            canvas.drawLine(mCenterX, mCenterY, start.x, start.y, mHintPaint)
+            canvas.drawLine(mCenterX, mCenterY, end.x, end.y, mHintPaint)
+            if (isSelected) {
+                canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isSelected, mSectorPaint)
+            }
         }
 
         override fun equals(other: Any?): Boolean {
@@ -360,6 +426,7 @@ class NoteCircle @JvmOverloads constructor(
             result = 31 * result + endNote.hashCode()
             return result
         }
+
     }
 
     /**
@@ -462,5 +529,36 @@ class NoteCircle @JvmOverloads constructor(
             invalidate()
             requestLayout()
         }
+    }
+
+    /**
+     * Extends [GestureDetector.SimpleOnGestureListener] to provide custom gesture
+     * processing.
+     */
+    private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        // For some reason, onDown needs to be implemented for this to behave properly
+        override fun onDown(e: MotionEvent): Boolean {
+            return true
+        }
+
+        override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
+            val p = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
+            selectSector(p)
+            invalidate()
+            return true
+        }
+    }
+
+    private fun selectSector(p: Point) {
+        val selected = mSectors.find {
+            if (it.start.position <= it.end.position) {
+                it.start.position < p.position &&
+                        p.position < it.end.position
+            } else { // In case the sector crosses over position 0.
+               p.position > it.start.position ||
+                       p.position < it.end.position
+            }
+        }
+        selected?.isSelected = true
     }
 }
