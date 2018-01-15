@@ -9,7 +9,6 @@ import kotlin.properties.ReadWriteProperty
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.TextView
-import android.util.Log
 
 const val DEBUG_TAG = "TTuner"
 
@@ -274,7 +273,6 @@ class NoteCircle @JvmOverloads constructor(
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         val p = Point.screen(event!!.x, event!!.y, mCenterX, mCenterY)
-        Log.d(DEBUG_TAG, "TouchEvent: position:${p.position}, distance:${p.distance}")
         textView.text = """
             |Center: ($mCenterX, $mCenterY)
             |Screen: (${p.x}, ${p.y})
@@ -531,34 +529,86 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
+    enum class Direction {
+        CLOCKWISE,
+        COUNTERCLOCKWISE
+    }
+
     /**
      * Extends [GestureDetector.SimpleOnGestureListener] to provide custom gesture
      * processing.
      */
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
+        var prevSelected: IntervalSector? = null
+        var firstSelected: IntervalSector? = null
+        var selectionDirection = Direction.CLOCKWISE // actual selectionDirection is reset during some onScrolls
+
+
         // For some reason, onDown needs to be implemented for this to behave properly
         override fun onDown(e: MotionEvent): Boolean {
+            val p = Point.screen(e.x, e.y, mCenterX, mCenterY)
+            val selected = findSectorAtPosition(p)
+            if (selected == null) return false
+
+            prevSelected = null
+            firstSelected = null
             return true
         }
 
         override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             val p = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
-            selectSector(p)
+            val selected = findSectorAtPosition(p)
+            if (selected == null) return false
+
+            if (firstSelected == null || prevSelected == null) {
+                selected.isSelected = true
+                prevSelected = selected
+                firstSelected = selected
+            }
+
+            if (prevSelected != selected) {
+                val direction = calculateDirection(p, distanceX, distanceY)
+                if (prevSelected == firstSelected) {
+                    selected.isSelected = true
+                    selectionDirection = direction
+                } else {
+                    if (direction == selectionDirection) {
+                        selected.isSelected = true
+                    } else {
+                        prevSelected?.isSelected = false
+                    }
+
+                }
+                prevSelected = selected
+            }
             invalidate()
             return true
         }
-    }
 
-    private fun selectSector(p: Point) {
-        val selected = mSectors.find {
-            if (it.start.position <= it.end.position) {
-                it.start.position < p.position &&
-                        p.position < it.end.position
-            } else { // In case the sector crosses over position 0.
-               p.position > it.start.position ||
-                       p.position < it.end.position
+        private fun calculateDirection(p: Point, distanceX: Float, distanceY: Float): NoteCircle.Direction {
+            val movedRight = distanceX > 0
+            val movedDown = distanceY > 0
+            return when {
+                0.0 <= p.position && p.position < 0.125 -> if (movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
+                0.125 <= p.position && p.position < 0.375 -> if (movedDown) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
+                0.375 <= p.position && p.position < 0.625 -> if (!movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
+                0.625 <= p.position && p.position < 0.875 -> if (!movedDown) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
+                0.875 <= p.position && p.position < 1.0 -> if (movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
+                else -> throw Exception("Can't calculate direction. position: ${p.position}, distanceX: $distanceX, distanceY: $distanceY")
             }
         }
-        selected?.isSelected = true
+
+        private fun findSectorAtPosition(p: Point): IntervalSector? {
+            val selected = mSectors.find {
+                if (it.start.position <= it.end.position) {
+                    it.start.position < p.position &&
+                            p.position < it.end.position
+                } else { // In case the sector crosses over position 0.
+                    p.position > it.start.position ||
+                            p.position < it.end.position
+                }
+            }
+            return selected
+        }
     }
 }
