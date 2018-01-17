@@ -3,6 +3,7 @@ package com.thefourthspecies.ttunertouch
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import kotlin.properties.Delegates
 import kotlin.properties.ReadWriteProperty
@@ -44,6 +45,7 @@ class NoteCircle @JvmOverloads constructor(
     private val _textBounds = Rect() // For centering labels
     private var mOuterRadius = 0.0f
     private var mInnerRadius = 0.0f
+    private var mButtonRadius = 0.0f
     private var mDotRadius = 0.0f
     private var mLabelRadius = 0.0f
     private var mCenterX = 0.0f
@@ -52,6 +54,7 @@ class NoteCircle @JvmOverloads constructor(
 
     // Temperament Data
     private var mRelationships: MutableSet<Relationship> = mutableSetOf()
+    private var mNoteButtons: List<NoteButton> = listOf()
 
     private var mNotes: MutableSet<Note> = mutableSetOf()
     var notes: MutableSet<Note>
@@ -64,7 +67,11 @@ class NoteCircle @JvmOverloads constructor(
     var mSectors: List<IntervalSector> = listOf()
 
     lateinit var textView: TextView
-    lateinit var mDetector: GestureDetector
+    var mDetector: GestureDetector
+
+    // Drawings
+    var mLineStart: Point? = null
+    var mLineEnd: Point? = null
 
 
     init {
@@ -194,6 +201,7 @@ class NoteCircle @JvmOverloads constructor(
         mOuterRadius = outerDiameter/2.0f
         mInnerRadius = mOuterRadius * mInnerRadiusRatio
         mDotRadius = mInnerRadius * mDotRadiusRatio
+        mButtonRadius = mInnerRadius - (2*mDotRadius) // times 2 for safety
 
         mLabelRadius = (3*mOuterRadius + mInnerRadius)/4f
         mCenterX = paddingLeft.toFloat() + mOuterRadius
@@ -215,6 +223,7 @@ class NoteCircle @JvmOverloads constructor(
 
     private fun onDataChange() {
         mSectors = generateIntervalSectors()
+        mNoteButtons = calculateNoteButtons()
     }
 
     private fun generateIntervalSectors(): List<IntervalSector> {
@@ -294,9 +303,9 @@ class NoteCircle @JvmOverloads constructor(
 //        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
 //        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
 
-        for (sec in mSectors) {
-            sec.draw(canvas)
-        }
+//        for (sec in mSectors) {
+//            sec.draw(canvas)
+//        }
 
         for (rel in mRelationships) {
             rel.draw(canvas)
@@ -304,6 +313,10 @@ class NoteCircle @JvmOverloads constructor(
 
         for (note in mNotes) {
             note.draw(canvas)
+        }
+
+        if (mLineStart != null && mLineEnd != null) {
+            canvas.drawLine(mLineStart?.x ?: 0f, mLineStart?.y ?: 0f, mLineEnd?.x ?: 0f, mLineEnd?.y ?: 0f, mDotPaint)
         }
 
     }
@@ -489,8 +502,8 @@ class NoteCircle @JvmOverloads constructor(
                            var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
 
         init {
-            assert(0.0 <= note.position && note.position <= 1.0) {
-                "NoteButton[${note.position}, ${note.name}]: 'position' must be from 0 to 1."
+            assert(0.0 <= note.position && note.position < 1.0) {
+                "NoteButton[${note.position}, ${note.name}]: 'position' must be in range [0-1)."
             }
         }
 
@@ -542,47 +555,73 @@ class NoteCircle @JvmOverloads constructor(
         var prevSelected: IntervalSector? = null
         var firstSelected: IntervalSector? = null
         var selectionDirection = Direction.CLOCKWISE // actual selectionDirection is reset during some onScrolls
-
+        var startNote: Note? = null
 
         // For some reason, onDown needs to be implemented for this to behave properly
         override fun onDown(e: MotionEvent): Boolean {
             val p = Point.screen(e.x, e.y, mCenterX, mCenterY)
-            val selected = findSectorAtPosition(p)
-            if (selected == null) return false
+            Log.d(DEBUG_TAG, "OnDown. position ${p.position}, distance ${p.distance}")
+            val button = findButtonAtPosition(p)
+            if (button == null) {
+                startNote = null
+                return false
+            }
 
-            prevSelected = null
-            firstSelected = null
+            Log.d(DEBUG_TAG, "NoteButton pressed: ${button.note.name}")
+
+            startNote = button.note
+            mLineStart = Point(button.note.position, mInnerRadius)
             return true
+
+
+//            val selected = findSectorAtPosition(p)
+//            if (selected == null) return false
+//
+//            prevSelected = null
+//            firstSelected = null
+//            return true
         }
 
+
         override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
-            val p = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
-            val selected = findSectorAtPosition(p)
-            if (selected == null) return false
+            if (startNote == null) return false
 
-            if (firstSelected == null || prevSelected == null) {
-                selected.isSelected = true
-                prevSelected = selected
-                firstSelected = selected
-            }
-
-            if (prevSelected != selected) {
-                val direction = calculateDirection(p, distanceX, distanceY)
-                if (prevSelected == firstSelected) {
-                    selected.isSelected = true
-                    selectionDirection = direction
-                } else {
-                    if (direction == selectionDirection) {
-                        selected.isSelected = true
-                    } else {
-                        prevSelected?.isSelected = false
-                    }
-
-                }
-                prevSelected = selected
-            }
+            mLineEnd = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
             invalidate()
             return true
+
+
+
+
+
+
+//            val p = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
+//            val selected = findSectorAtPosition(p)
+//            if (selected == null) return false
+//
+//            if (firstSelected == null || prevSelected == null) {
+//                selected.isSelected = true
+//                prevSelected = selected
+//                firstSelected = selected
+//            }
+//
+//            if (prevSelected != selected) {
+//                val direction = calculateDirection(p, distanceX, distanceY)
+//                if (prevSelected == firstSelected) {
+//                    selected.isSelected = true
+//                    selectionDirection = direction
+//                } else {
+//                    if (direction == selectionDirection) {
+//                        selected.isSelected = true
+//                    } else {
+//                        prevSelected?.isSelected = false
+//                    }
+//
+//                }
+//                prevSelected = selected
+//            }
+//            invalidate()
+//            return true
         }
 
         private fun calculateDirection(p: Point, distanceX: Float, distanceY: Float): NoteCircle.Direction {
@@ -596,6 +635,22 @@ class NoteCircle @JvmOverloads constructor(
                 0.875 <= p.position && p.position < 1.0 -> if (movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
                 else -> throw Exception("Can't calculate direction. position: ${p.position}, distanceX: $distanceX, distanceY: $distanceY")
             }
+        }
+
+        private fun findButtonAtPosition(p: Point): NoteButton? {
+            if (p.distance > mOuterRadius || p.distance < mButtonRadius) return null
+
+            assert(0.0 <= p.position && p.position < 1.0)
+            val button = mNoteButtons.find {
+                if (it.startPosition <= it.endPosition) {
+                    it.startPosition < p.position &&
+                            p.position < it.endPosition
+                } else {
+                    p.position > it.startPosition ||
+                            p.position < it.endPosition
+                }
+            }
+            return button
         }
 
         private fun findSectorAtPosition(p: Point): IntervalSector? {

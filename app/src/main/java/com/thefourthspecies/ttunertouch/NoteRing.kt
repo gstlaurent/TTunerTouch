@@ -51,6 +51,7 @@ class NoteRing @JvmOverloads constructor(
     // Note Data
     data class Note(val position: Double, val name: String)
     var mNotes: MutableList<Note> = mutableListOf()
+    var mNotesButtons: MutableList<Note> = mutableListOf()
 
 
 
