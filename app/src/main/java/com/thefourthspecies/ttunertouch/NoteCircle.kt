@@ -422,6 +422,15 @@ class NoteCircle @JvmOverloads constructor(
             }
         }
 
+        operator fun contains(p: Point): Boolean {
+            val result = if (start.position <= end.position) {
+                start.position < p.position && p.position < end.position
+            } else { // In case the sector crosses over position 0.
+                p.position > start.position || p.position < end.position
+            }
+            return result
+        }
+
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is IntervalSector) return false
@@ -520,6 +529,17 @@ class NoteCircle @JvmOverloads constructor(
             }
             Label(note.position, note.name).draw(canvas, if (note.isHint) mHintLabelPaint else mLabelPaint)
         }
+
+        operator fun contains(p: Point): Boolean {
+            if (p.distance > mOuterRadius || p.distance < mButtonRadius) return false
+
+            val result = if (startPosition <= endPosition) {
+                startPosition < p.position && p.position < endPosition
+            } else {
+                p.position > startPosition || p.position < endPosition
+            }
+            return result
+        }
     }
 
     /**
@@ -561,7 +581,7 @@ class NoteCircle @JvmOverloads constructor(
         override fun onDown(e: MotionEvent): Boolean {
             val p = Point.screen(e.x, e.y, mCenterX, mCenterY)
             Log.d(DEBUG_TAG, "OnDown. position ${p.position}, distance ${p.distance}")
-            val button = findButtonAtPosition(p)
+            val button = mNoteButtons.find { p in it }
             if (button == null) {
                 startNote = null
                 return false
@@ -574,7 +594,7 @@ class NoteCircle @JvmOverloads constructor(
             return true
 
 
-//            val selected = findSectorAtPosition(p)
+//            val selected = mSectors.find { p in it }
 //            if (selected == null) return false
 //
 //            prevSelected = null
@@ -596,7 +616,7 @@ class NoteCircle @JvmOverloads constructor(
 
 
 //            val p = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
-//            val selected = findSectorAtPosition(p)
+//            val selected = mSectors.find { p in it }
 //            if (selected == null) return false
 //
 //            if (firstSelected == null || prevSelected == null) {
@@ -637,32 +657,8 @@ class NoteCircle @JvmOverloads constructor(
             }
         }
 
-        private fun findButtonAtPosition(p: Point): NoteButton? {
-            if (p.distance > mOuterRadius || p.distance < mButtonRadius) return null
-
-            assert(0.0 <= p.position && p.position < 1.0)
-            val button = mNoteButtons.find {
-                if (it.startPosition <= it.endPosition) {
-                    it.startPosition < p.position &&
-                            p.position < it.endPosition
-                } else {
-                    p.position > it.startPosition ||
-                            p.position < it.endPosition
-                }
-            }
-            return button
-        }
-
         private fun findSectorAtPosition(p: Point): IntervalSector? {
-            val selected = mSectors.find {
-                if (it.start.position <= it.end.position) {
-                    it.start.position < p.position &&
-                            p.position < it.end.position
-                } else { // In case the sector crosses over position 0.
-                    p.position > it.start.position ||
-                            p.position < it.end.position
-                }
-            }
+            val selected = mSectors.find { p in it }
             return selected
         }
     }

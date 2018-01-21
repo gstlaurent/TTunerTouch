@@ -24,6 +24,11 @@ data class Point private constructor(val position: Double, val distance: Float, 
             return if (theta < 0) { theta + 360f } else theta
         }
 
+    init {
+        assert(0 <= position && position < 1.0)
+    }
+
+
     companion object {
         fun polar(position: Double, distance: Float, centerX: Float, centerY: Float): Point {
             val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
