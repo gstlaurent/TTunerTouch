@@ -262,15 +262,15 @@ class NoteCircle @JvmOverloads constructor(
             var nbCurr: NoteButton = noteButtons.last()
             var nbNext: NoteButton = noteButtons[0]
             var nextEdgePosition = average(1.0, nbCurr.note.position)
-            nbCurr.endPosition = nextEdgePosition
-            nbNext.startPosition = nextEdgePosition - 1 // Start position must be smaller than endNote position to ensure button boundaries for ring's minor segment
+            nbCurr.sector.endPosition = nextEdgePosition
+            nbNext.sector.startPosition = nextEdgePosition - 1 // Start position must be smaller than endNote position to ensure button boundaries for ring's minor segment
 
             for (i in 0..noteButtons.size - 2) {
                 nbCurr = noteButtons[i]
                 nbNext = noteButtons[i+1]
                 nextEdgePosition = average(nbCurr.note.position, nbNext.note.position)
-                nbCurr.endPosition = nextEdgePosition
-                nbNext.startPosition = nextEdgePosition
+                nbCurr.sector.endPosition = nextEdgePosition
+                nbNext.sector.startPosition = nextEdgePosition
             }
         }
         return noteButtons
@@ -500,39 +500,25 @@ class NoteCircle @JvmOverloads constructor(
         return Point.polar(position, distance, mCenterX, mCenterY)
     }
 
-     // Start position must be smaller than endNote position to ensure button boundaries for ring's minor segment
+
     /**
      * A button along the NoteRing. Positions are ratio of 360 degrees along the ring, starting at the top.
-     * @note the note associated with this button
-     * @startPosition the edge of the button prior to the position
-     * @endPosition the edge of the button after the position
      */
-    inner class NoteButton(val note: Note,
-                           var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
+    inner class NoteButton(val note: Note, val sector: Sector = Sector()) {
+        constructor(note: Note, startPosition: Double, endPosition: Double) :
+                this(note, Sector(startPosition, endPosition))
 
-        init {
-            assert(0.0 <= note.position && note.position < 1.0) {
-                "NoteButton[${note.position}, ${note.name}]: 'position' must be in range [0-1)."
-            }
-        }
+        operator fun contains(p: Point): Boolean =
+                mButtonRadius <= p.distance &&
+                        p.distance <= mOuterRadius &&
+                        p in sector
+    }
 
-        fun draw(canvas: Canvas) {
-            assert(startPosition != endPosition) {
-                "NoteButton[${note.position}, ${note.name}] has no width"
-            }
-//            Radial(note.position).draw(canvas, mHintPaint)
-//            Edge(startPosition).draw(canvas, mHintPaint)
-//            Edge(endPosition).draw(canvas, mHintPaint)
 
-            if (!note.isHint) {
-                Dot(note.position).draw(canvas, mDotPaint)
-            }
-            Label(note.position, note.name).draw(canvas, if (note.isHint) mHintLabelPaint else mLabelPaint)
-        }
 
+    // Variable since currently the notebutton calculate function must set them
+    data class Sector(var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
         operator fun contains(p: Point): Boolean {
-            if (p.distance > mOuterRadius || p.distance < mButtonRadius) return false
-
             val result = if (startPosition <= endPosition) {
                 startPosition < p.position && p.position < endPosition
             } else {
@@ -541,6 +527,8 @@ class NoteCircle @JvmOverloads constructor(
             return result
         }
     }
+
+
 
     /**
      * https://stackoverflow.com/questions/4909367/how-to-align-text-vertically

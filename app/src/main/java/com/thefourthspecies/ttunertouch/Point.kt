@@ -25,7 +25,9 @@ data class Point private constructor(val position: Double, val distance: Float, 
         }
 
     init {
-        assert(0 <= position && position < 1.0)
+        assert(0 <= position && position < 1.0) {
+            "$this: 'position' must be in range [0-1)."
+        }
     }
 
 
