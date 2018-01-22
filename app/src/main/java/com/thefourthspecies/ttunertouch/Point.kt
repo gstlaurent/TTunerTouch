@@ -1,5 +1,7 @@
 package com.thefourthspecies.ttunertouch
 
+import android.util.Log
+
 /**
  * Point: represents a location in two ways:
  *  1. clock: modified polar coordinates based

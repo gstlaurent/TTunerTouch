@@ -70,8 +70,10 @@ class NoteCircle @JvmOverloads constructor(
     var mDetector: GestureDetector
 
     // Drawings
-    var mLineStart: Point? = null
-    var mLineEnd: Point? = null
+//    var mLineStart: Point? = null
+//    var mLineEnd: Point? = null
+    var mStartButton: NoteButton? = null
+    var mTouchPoint: Point? = null
 
 
     init {
@@ -315,11 +317,66 @@ class NoteCircle @JvmOverloads constructor(
             note.draw(canvas)
         }
 
-        if (mLineStart != null && mLineEnd != null) {
-            canvas.drawLine(mLineStart?.x ?: 0f, mLineStart?.y ?: 0f, mLineEnd?.x ?: 0f, mLineEnd?.y ?: 0f, mDotPaint)
-        }
+        drawInput(canvas, mStartButton, mTouchPoint)
+
+//
+//        if (mLineStart != null && mLineEnd != null) {
+//            canvas.drawLine(mLineStart?.x ?: 0f, mLineStart?.y ?: 0f, mLineEnd?.x ?: 0f, mLineEnd?.y ?: 0f, mDotPaint)
+//        }
 
     }
+
+    private fun drawInput(canvas: Canvas, startButton: NoteButton?, touchPoint: Point?) {
+        if (startButton != null) {
+            // highlight start dot todo
+        }
+        if (startButton == null || touchPoint == null) return
+
+        if (touchPoint.distance < mInnerRadius) {
+            drawIntervalLine(canvas, startButton, touchPoint)
+        } else {
+            drawIntervalFill(canvas, startButton, touchPoint)
+        }
+    }
+
+    private fun drawIntervalLine(canvas: Canvas, startButton: NoteButton, touchPoint: Point) {
+        val endButton = mNoteButtons.find { it.inSector(touchPoint) }
+        if (endButton == null || startButton == endButton) return
+
+        val startPoint = Point(startButton.note.position, mInnerRadius)
+        val endPoint = Point(endButton.note.position, mInnerRadius)
+        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
+//
+//        val endButton = mNoteButtons.find { touchPoint in it }
+//        val endPoint = if (endButton != null && startButton != endButton) {
+//            Point(endButton.note.position, mInnerRadius)
+//        } else {
+//            touchPoint
+//        }
+//        val startPoint = Point(startButton.note.position, mInnerRadius)
+//        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
+    }
+
+    private fun drawIntervalFill(canvas: Canvas, startButton: NoteButton, touchPoint: Point) {
+//        val endButton = mNoteButtons.find { it.inSector(touchPoint) }
+//        if (endButton == null || startButton == endButton) return
+
+    }
+
+
+//
+//        val startPoint = Point(startButton.note.position, mInnerRadius)
+//        val endButton = mNoteButtons.find { touchPoint in it }
+//
+//
+//
+//        if (touchPoint.distance < mInnerRadius) {
+//            // todo line paint
+//            canvas.drawLine(startPoint.x, startPoint.y, touchPoint.x, touchPoint.y)
+//
+//        }
+//
+//    }
 
     inner class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean) {
         var start = Point(note1.position, mInnerRadius)
@@ -368,7 +425,9 @@ class NoteCircle @JvmOverloads constructor(
         }
 
         init {
-            assert(0.0 <= this.position && this.position < 1.0)
+            assert(0.0 <= this.position && this.position < 1.0) {
+                "$this: 'position' must be in range [0,1)"
+            }
         }
 
         fun draw(canvas: Canvas) {
@@ -396,6 +455,10 @@ class NoteCircle @JvmOverloads constructor(
             result = 31 * result + name.hashCode()
             result = 31 * result + isHint.hashCode()
             return result
+        }
+
+        override fun toString(): String {
+            return "Note(position=$position, name='$name', isHint=$isHint)"
         }
     }
 
@@ -512,6 +575,24 @@ class NoteCircle @JvmOverloads constructor(
                 mButtonRadius <= p.distance &&
                         p.distance <= mOuterRadius &&
                         p in sector
+
+        fun inSector(p: Point): Boolean = p in sector
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is NoteButton) return false
+            if (note != other.note) return false
+            if (sector != other.sector) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = note.hashCode()
+            result = 31 * result + sector.hashCode()
+            return result
+        }
+
     }
 
 
@@ -563,23 +644,19 @@ class NoteCircle @JvmOverloads constructor(
         var prevSelected: IntervalSector? = null
         var firstSelected: IntervalSector? = null
         var selectionDirection = Direction.CLOCKWISE // actual selectionDirection is reset during some onScrolls
-        var startNote: Note? = null
 
         // For some reason, onDown needs to be implemented for this to behave properly
         override fun onDown(e: MotionEvent): Boolean {
             val p = Point.screen(e.x, e.y, mCenterX, mCenterY)
-            Log.d(DEBUG_TAG, "OnDown. position ${p.position}, distance ${p.distance}")
+            Log.d(DEBUG_TAG, "OnDown. $p")
             val button = mNoteButtons.find { p in it }
-            if (button == null) {
-                startNote = null
-                return false
+            if (button != null) {
+                Log.d(DEBUG_TAG, "NoteButton pressed: ${button.note.name}")
             }
-
-            Log.d(DEBUG_TAG, "NoteButton pressed: ${button.note.name}")
-
-            startNote = button.note
-            mLineStart = Point(button.note.position, mInnerRadius)
+            mStartButton = button
             return true
+
+//            mLineStart = Point(button.note.position, mInnerRadius)
 
 
 //            val selected = mSectors.find { p in it }
@@ -592,12 +669,11 @@ class NoteCircle @JvmOverloads constructor(
 
 
         override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
-            if (startNote == null) return false
-
-            mLineEnd = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
+            if (mStartButton == null) return false
+            mTouchPoint = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
             invalidate()
             return true
-
+        }
 
 
 
@@ -630,7 +706,7 @@ class NoteCircle @JvmOverloads constructor(
 //            }
 //            invalidate()
 //            return true
-        }
+//        }
 
         private fun calculateDirection(p: Point, distanceX: Float, distanceY: Float): NoteCircle.Direction {
             val movedRight = distanceX > 0
@@ -648,6 +724,19 @@ class NoteCircle @JvmOverloads constructor(
         private fun findSectorAtPosition(p: Point): IntervalSector? {
             val selected = mSectors.find { p in it }
             return selected
+        }
+    }
+
+    private fun highlightIntervals(startButton: NoteButton, p: Point) {
+
+    }
+
+    private fun extendLine(startButton: NoteButton, p: Point) {
+        val endButton = mNoteButtons.find { p in it }
+        val endPoint = if (endButton == null || endButton == startButton) {
+            p
+        } else {
+            Point(endButton.note.position, mInnerRadius)
         }
     }
 }
