@@ -73,8 +73,9 @@ class NoteCircle @JvmOverloads constructor(
 //    var mLineStart: Point? = null
 //    var mLineEnd: Point? = null
     var mStartButton: NoteButton? = null
-    var mTouchPoint: Point? = null
-
+    var mEndButton: NoteButton? = null
+    var mOutsideTouch: Boolean = false
+    var mScrollDirection: Direction? = null
 
     init {
         val a = context.theme.obtainStyledAttributes(
@@ -289,6 +290,7 @@ class NoteCircle @JvmOverloads constructor(
             |Screen: (${p.x}, ${p.y})
             |Polar: (${p.position}, ${p.distance})
             |ScreenAngle: ${p.screenAngle}
+            |isOutsideTouch: $mOutsideTouch
             """.trimMargin()
 
         // Let the GestureDetector interpret this event
@@ -317,7 +319,7 @@ class NoteCircle @JvmOverloads constructor(
             note.draw(canvas)
         }
 
-        drawInput(canvas, mStartButton, mTouchPoint)
+        drawInput(canvas, mStartButton, mEndButton)
 
 //
 //        if (mLineStart != null && mLineEnd != null) {
@@ -326,23 +328,21 @@ class NoteCircle @JvmOverloads constructor(
 
     }
 
-    private fun drawInput(canvas: Canvas, startButton: NoteButton?, touchPoint: Point?) {
+    // not using class properties because that somehow lets it believe they are not null
+    private fun drawInput(canvas: Canvas, startButton: NoteButton?, endButton: NoteButton?) {
         if (startButton != null) {
             // highlight start dot todo
         }
-        if (startButton == null || touchPoint == null) return
+        if (startButton == null || endButton == null) return
 
-        if (touchPoint.distance < mInnerRadius) {
-            drawIntervalLine(canvas, startButton, touchPoint)
+        if (mOutsideTouch) {
+            drawIntervalFill(canvas, startButton, endButton)
         } else {
-            drawIntervalFill(canvas, startButton, touchPoint)
+            drawIntervalLine(canvas, startButton, endButton)
         }
     }
 
-    private fun drawIntervalLine(canvas: Canvas, startButton: NoteButton, touchPoint: Point) {
-        val endButton = mNoteButtons.find { it.inSector(touchPoint) }
-        if (endButton == null || startButton == endButton) return
-
+    private fun drawIntervalLine(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
         val startPoint = Point(startButton.note.position, mInnerRadius)
         val endPoint = Point(endButton.note.position, mInnerRadius)
         canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
@@ -357,11 +357,36 @@ class NoteCircle @JvmOverloads constructor(
 //        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
     }
 
-    private fun drawIntervalFill(canvas: Canvas, startButton: NoteButton, touchPoint: Point) {
+    private fun drawIntervalFill(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
+        val startPoint = Point(startButton.note.position, mInnerRadius)
+        val endPoint = Point(endButton.note.position, mInnerRadius)
+        val diffAngle = endPoint.screenAngle - startPoint.screenAngle
+
+        val sweepAngle = if (mScrollDirection == Direction.CLOCKWISE) {
+            if (diffAngle < 0) {
+                diffAngle + 360f
+            } else {
+                diffAngle
+            }
+        } else {
+            if (diffAngle < 0) {
+                diffAngle
+            } else {
+                diffAngle - 360f
+            }
+        }
+
+        val hasCenter = true
+        canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, hasCenter, mSectorPaint)
+    }
+
+
+
+
 //        val endButton = mNoteButtons.find { it.inSector(touchPoint) }
 //        if (endButton == null || startButton == endButton) return
 
-    }
+//    }
 
 
 //
@@ -670,7 +695,16 @@ class NoteCircle @JvmOverloads constructor(
 
         override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             if (mStartButton == null) return false
-            mTouchPoint = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
+            val touchPoint = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
+            mEndButton = mNoteButtons.find { it.inSector(touchPoint)  }
+            if (mEndButton == mStartButton) {
+                val startPoint = Point(mStartButton?.note?.position ?: 0.0, mInnerRadius)
+                mScrollDirection = calculateDirection(touchPoint,
+                        touchPoint.x - startPoint.x,
+                        touchPoint.y - startPoint.y)
+            }
+            mOutsideTouch = touchPoint.distance > mInnerRadius
+
             invalidate()
             return true
         }
