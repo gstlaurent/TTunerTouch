@@ -290,7 +290,8 @@ class NoteCircle @JvmOverloads constructor(
             |Screen: (${p.x}, ${p.y})
             |Polar: (${p.position}, ${p.distance})
             |ScreenAngle: ${p.screenAngle}
-            |isOutsideTouch: $mOutsideTouch
+            |mOutsideTouch: $mOutsideTouch
+            |mScrollDirection: $mScrollDirection
             """.trimMargin()
 
         // Let the GestureDetector interpret this event
@@ -771,6 +772,16 @@ class NoteCircle @JvmOverloads constructor(
             p
         } else {
             Point(endButton.note.position, mInnerRadius)
+        }
+    }
+
+    inner class NoteMap(val map: HashMap<Note, Point>) : MutableMap<Note, Point> by map {
+        fun at(note: Note): Point {
+            val point = map[note]
+            assert(point != null) {
+                "Note $note has no corresponding Point."
+            }
+            return point ?: Point(0.0, mInnerRadius)
         }
     }
 }

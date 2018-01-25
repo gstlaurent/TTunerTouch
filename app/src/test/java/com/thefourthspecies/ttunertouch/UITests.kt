@@ -24,6 +24,31 @@ class UITests {
         testScreenToPolar(200f, 300f, 200f, 200f)
         testScreenToPolar(100f, 200f, 200f, 200f)
         testScreenToPolar(0f, 0f, 200f, 200f)
+
+
+    }
+
+    @Test
+    fun pointMoves() {
+        var paPosition = Point.polar(0.33, 300f, 250f, 260f)
+        paPosition.moveByPosition(0.10)
+        var pePosition = Point.polar(0.10, 300f, 250f, 260f)
+        assertEquals(paPosition, pePosition)
+
+        var paDistance = Point.polar(0.33, 300f, 250f, 260f)
+        paDistance.moveByDistance(400f)
+        var peDistance = Point.polar(0.33, 400f, 250f, 260f)
+        assertEquals(paDistance, peDistance)
+
+        var paX = Point.screen(120f, 300f, 250f, 260f)
+        paX.moveByX(1f)
+        var peX = Point.screen(1f, 300f, 250f, 260f)
+        assertEquals(paX, peX)
+
+        var paY = Point.screen(120f, 300f, 250f, 260f)
+        paY.moveByY(37f)
+        var peY = Point.screen(120f, 37f, 250f, 260f)
+        assertEquals(paY, peY)
     }
 
     fun testPolarToScreen(position: Double, distance: Float, centerX: Float, centerY: Float) {
