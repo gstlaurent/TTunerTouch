@@ -186,8 +186,8 @@ class NoteRing @JvmOverloads constructor(
      *
      */
     inner class Edge(val position: Double) {
-        val start = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
-        val end = Point.polar(position, mOuterRadius, mCenterX, mCenterY)
+        val start = Point.polar(position, mInnerRadius)
+        val end = Point.polar(position, mOuterRadius)
 
         fun draw(canvas: Canvas) {
             canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
@@ -199,7 +199,7 @@ class NoteRing @JvmOverloads constructor(
      * A circle drawn on the inner border
      */
     inner class Dot(val position: Double) {
-        val point = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
+        val point = Point.polar(position, mInnerRadius)
 
         fun draw(canvas: Canvas) {
             canvas.drawCircle(point.x, point.y, mDotRadius, mDotPaint)
@@ -210,7 +210,7 @@ class NoteRing @JvmOverloads constructor(
      * The note name between the inner and outer borders
      */
     inner class Label (val position: Double, val text: String) {
-        val point = Point.polar(position, mLabelRadius, mCenterX, mCenterY)
+        val point = Point.polar(position, mLabelRadius)
 
         fun draw(canvas: Canvas) {
             drawTextCentered(canvas, mLabelPaint, text, point.x, point.y)

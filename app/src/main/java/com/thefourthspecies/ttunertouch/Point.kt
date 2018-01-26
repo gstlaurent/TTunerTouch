@@ -1,5 +1,6 @@
 package com.thefourthspecies.ttunertouch
 
+import android.util.Log
 import kotlin.math.roundToInt
 
 /**
@@ -19,7 +20,7 @@ import kotlin.math.roundToInt
  *
  *
  */
-class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
+class Point private constructor() {
 
     var position: Double = 0.0
         private set(position) {
@@ -33,9 +34,21 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
         private set
 
     var x: Float = 0f
+        get() {
+            if (needsScreenRefresh()) {
+                refreshScreenCoordinates()
+            }
+            return field
+        }
         private set
 
     var y: Float = 0f
+        get() {
+            if (needsScreenRefresh()) {
+                refreshScreenCoordinates()
+            }
+            return field
+        }
         private set
 
     val screenAngle: Float
@@ -43,6 +56,9 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
             val theta: Float = ((position - 0.25) * 360).toFloat()
             return if (theta < 0) { theta + 360f } else theta
         }
+
+    private var version = 0
+    private fun needsScreenRefresh(): Boolean = version != Point.version
 
     fun moveByPosition(position: Double) {
         this.position = position
@@ -98,7 +114,6 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
         return centerY - yy.toFloat()
     }
 
-
     override fun toString(): String {
         return "Point(position=$position, distance=$distance, x=$x, y=$y)"
     }
@@ -107,8 +122,6 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
         if (this === other) return true
         if (other !is Point) return false
 
-        if (centerX != other.centerX) return false
-        if (centerY != other.centerY) return false
         if (x != other.x) return false
         if (y != other.y) return false
 
@@ -124,16 +137,31 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
     }
 
     companion object {
-        fun polar(position: Double, distance: Float, centerX: Float, centerY: Float): Point {
-            val point = Point(centerX, centerY)
+        var centerX: Float = 0f
+            private set
+        var centerY: Float = 0f
+            private set
+
+        @Synchronized fun center(x: Float, y: Float) {
+            centerX = x
+            centerY = y
+            version++
+        }
+
+        private var version = 0
+
+        fun polar(position: Double, distance: Float): Point {
+            val point = Point()
+            point.version = version
             point.position = position
             point.distance = distance
             point.refreshScreenCoordinates()
             return point
         }
 
-        fun screen(x: Float, y: Float, centerX: Float, centerY: Float): Point {
-            val point = Point(centerX, centerY)
+        fun screen(x: Float, y: Float): Point {
+            val point = Point()
+            point.version = version
             point.x = x
             point.y = y
             point.refreshPolarCoordinates()

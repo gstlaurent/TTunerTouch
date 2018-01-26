@@ -221,6 +221,8 @@ class NoteCircle @JvmOverloads constructor(
 
         for (rel in mRelationships) rel.setDistanceFromCenter(mInnerRadius)
 
+        Point.center(mCenterX, mCenterY)
+
         onDataChange()
     }
 
@@ -284,7 +286,7 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        val p = Point.screen(event!!.x, event!!.y, mCenterX, mCenterY)
+        val p = Point.screen(event!!.x, event!!.y)
         textView.text = """
             |Center: ($mCenterX, $mCenterY)
             |Screen: (${p.x}, ${p.y})
@@ -543,8 +545,8 @@ class NoteCircle @JvmOverloads constructor(
      *
      */
     inner class Edge(val position: Double) {
-        val start = Point.polar(position, mInnerRadius, mCenterX, mCenterY)
-        val end = Point.polar(position, mOuterRadius, mCenterX, mCenterY)
+        val start = Point.polar(position, mInnerRadius)
+        val end = Point.polar(position, mOuterRadius)
 
         fun draw(canvas: Canvas, paint: Paint) {
             canvas.drawLine(start.x, start.y, end.x, end.y, paint)
@@ -586,7 +588,7 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     private fun Point(position: Double, distance: Float): Point {
-        return Point.polar(position, distance, mCenterX, mCenterY)
+        return Point.polar(position, distance)
     }
 
 
@@ -673,7 +675,7 @@ class NoteCircle @JvmOverloads constructor(
 
         // For some reason, onDown needs to be implemented for this to behave properly
         override fun onDown(e: MotionEvent): Boolean {
-            val p = Point.screen(e.x, e.y, mCenterX, mCenterY)
+            val p = Point.screen(e.x, e.y)
             Log.d(DEBUG_TAG, "OnDown. $p")
             val button = mNoteButtons.find { p in it }
             if (button != null) {
@@ -696,7 +698,7 @@ class NoteCircle @JvmOverloads constructor(
 
         override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
             if (mStartButton == null) return false
-            val touchPoint = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
+            val touchPoint = Point.screen(currentEvent.x, currentEvent.y)
             mEndButton = mNoteButtons.find { it.inSector(touchPoint)  }
             if (mEndButton == mStartButton) {
                 val startPoint = Point(mStartButton?.note?.position ?: 0.0, mInnerRadius)

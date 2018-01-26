@@ -30,37 +30,40 @@ class UITests {
 
     @Test
     fun pointMoves() {
-        var paPosition = Point.polar(0.33, 300f, 250f, 260f)
+        Point.center(250f, 260f)
+        var paPosition = Point.polar(0.33, 300f)
         paPosition.moveByPosition(0.10)
-        var pePosition = Point.polar(0.10, 300f, 250f, 260f)
+        var pePosition = Point.polar(0.10, 300f)
         assertEquals(paPosition, pePosition)
 
-        var paDistance = Point.polar(0.33, 300f, 250f, 260f)
+        var paDistance = Point.polar(0.33, 300f)
         paDistance.moveByDistance(400f)
-        var peDistance = Point.polar(0.33, 400f, 250f, 260f)
+        var peDistance = Point.polar(0.33, 400f)
         assertEquals(paDistance, peDistance)
 
-        var paX = Point.screen(120f, 300f, 250f, 260f)
+        var paX = Point.screen(120f, 300f)
         paX.moveByX(1f)
-        var peX = Point.screen(1f, 300f, 250f, 260f)
+        var peX = Point.screen(1f, 300f)
         assertEquals(paX, peX)
 
-        var paY = Point.screen(120f, 300f, 250f, 260f)
+        var paY = Point.screen(120f, 300f)
         paY.moveByY(37f)
-        var peY = Point.screen(120f, 37f, 250f, 260f)
+        var peY = Point.screen(120f, 37f)
         assertEquals(paY, peY)
     }
 
     fun testPolarToScreen(position: Double, distance: Float, centerX: Float, centerY: Float) {
-        var pp = Point.polar(position, distance, centerX, centerY)
-        var ps = Point.screen(pp.x, pp.y, centerX, centerY)
+        Point.center(centerX, centerY)
+        var pp = Point.polar(position, distance)
+        var ps = Point.screen(pp.x, pp.y)
         assertEquals(pp.position, ps.position, dDELTA)
         assertEquals(pp.distance, ps.distance, fDELTA)
     }
 
     fun testScreenToPolar(x: Float, y: Float, centerX: Float, centerY: Float) {
-        var ps = Point.screen(x, y, centerX, centerY)
-        var pp = Point.polar(ps.position, ps.distance, centerX, centerY)
+        Point.center(centerX, centerY)
+        var ps = Point.screen(x, y)
+        var pp = Point.polar(ps.position, ps.distance)
         assertEquals(ps.x, pp.x, fDELTA)
         assertEquals(ps.y, pp.y, fDELTA)
     }
