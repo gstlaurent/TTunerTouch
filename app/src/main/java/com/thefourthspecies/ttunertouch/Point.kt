@@ -109,8 +109,6 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
 
         if (centerX != other.centerX) return false
         if (centerY != other.centerY) return false
-        if (position != other.position) return false
-        if (distance != other.distance) return false
         if (x != other.x) return false
         if (y != other.y) return false
 
@@ -120,8 +118,6 @@ class Point(val centerX: Float = 0f, val centerY: Float = 0f) {
     override fun hashCode(): Int {
         var result = centerX.hashCode()
         result = 31 * result + centerY.hashCode()
-        result = 31 * result + position.hashCode()
-        result = 31 * result + distance.hashCode()
         result = 31 * result + x.hashCode()
         result = 31 * result + y.hashCode()
         return result
