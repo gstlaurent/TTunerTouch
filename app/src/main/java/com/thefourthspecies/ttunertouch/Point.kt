@@ -36,6 +36,7 @@ class Point private constructor() {
     var x: Float = 0f
         get() {
             if (needsScreenRefresh()) {
+                Log.d(DEBUG_TAG, "Point.x: Refreshing screen coordinates of Point(position=$position, distance=$distance)")
                 refreshScreenCoordinates()
             }
             return field
@@ -45,6 +46,7 @@ class Point private constructor() {
     var y: Float = 0f
         get() {
             if (needsScreenRefresh()) {
+                Log.d(DEBUG_TAG, "Point.y: Refreshing screen coordinates of Point(position=$position, distance=$distance)")
                 refreshScreenCoordinates()
             }
             return field
@@ -91,6 +93,9 @@ class Point private constructor() {
         val theta: Double = Math.PI / 2.0 - (2.0 * Math.PI * position)
         x = calcX(theta, distance, centerX)
         y = calcY(theta, distance, centerY)
+
+        version = Point.version
+
     }
 
     private fun calcPosition(yy: Double, xx: Double): Double {

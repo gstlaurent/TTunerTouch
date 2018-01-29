@@ -73,9 +73,13 @@ class NoteCircle @JvmOverloads constructor(
 //    var mLineStart: Point? = null
 //    var mLineEnd: Point? = null
     var mStartButton: NoteButton? = null
-    var mEndButton: NoteButton? = null
+    var mTouchPoint: Point? = null
     var mOutsideTouch: Boolean = false
     var mScrollDirection: Direction? = null
+    var mIsScrollOver: Boolean = false
+    var mSweepAngle: Float = 0f
+
+    var mViewState: NoteCircleViewState = NoteCircleViewState()
 
     init {
         val a = context.theme.obtainStyledAttributes(
@@ -292,8 +296,7 @@ class NoteCircle @JvmOverloads constructor(
             |Screen: (${p.x}, ${p.y})
             |Polar: (${p.position}, ${p.distance})
             |ScreenAngle: ${p.screenAngle}
-            |mOutsideTouch: $mOutsideTouch
-            |mScrollDirection: $mScrollDirection
+            |SweepAngle: $mSweepAngle
             """.trimMargin()
 
         // Let the GestureDetector interpret this event
@@ -307,43 +310,68 @@ class NoteCircle @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        val startNote = mStartButton?.note ?: Note(0.0, "Z")
+        val start = Point(startNote.position, mInnerRadius)
+        canvas.drawArc(mInnerCircleBounds, start.screenAngle, mSweepAngle, true, mSectorPaint)
+
+
+
+
+
+
 //        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
-//        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
+        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
 
-//        for (sec in mSectors) {
-//            sec.draw(canvas)
-//        }
-
-        for (rel in mRelationships) {
-            rel.draw(canvas)
+        for (sec in mSectors) {
+            sec.draw(canvas)
         }
+
+//        for (rel in mViewState.relationships) {
+//            val start = rel.note1.point
+//            val end = rel.note2.point
+//            canvas.drawLine(start.x, start.y, end.x, end.y, mLinePaint)
+//        }
+//
+//        for (note in mViewState.notes) {
+//            note.draw(canvas)
+//        }
+//
+////        if (mStartButton !=  null) {
+//            mStartButton?.note?.drawDot(canvas, mSelectPaint)
+//            drawScrollInput(canvas, mStartButton, mTouchPoint, mSweepAngle)
+//        }
+//
+//        drawInput(canvas, mStartButton, mEndPoint)
+//
+//        for (rel in mRelationships) {
+//            rel.draw(canvas)
+//        }
 
         for (note in mNotes) {
             note.draw(canvas)
         }
 
-        drawInput(canvas, mStartButton, mEndButton)
 
 //
 //        if (mLineStart != null && mLineEnd != null) {
 //            canvas.drawLine(mLineStart?.x ?: 0f, mLineStart?.y ?: 0f, mLineEnd?.x ?: 0f, mLineEnd?.y ?: 0f, mDotPaint)
 //        }
-
     }
 
-    // not using class properties because that somehow lets it believe they are not null
-    private fun drawInput(canvas: Canvas, startButton: NoteButton?, endButton: NoteButton?) {
-        if (startButton != null) {
-            // highlight start dot todo
-        }
-        if (startButton == null || endButton == null) return
-
-        if (mOutsideTouch) {
-            drawIntervalFill(canvas, startButton, endButton)
-        } else {
-            drawIntervalLine(canvas, startButton, endButton)
-        }
-    }
+//
+//    // not using class properties because that somehow lets it believe they are not null
+//    private fun drawInput(canvas: Canvas, startButton: NoteButton?, touchPoint: Point?) {
+//        if (startButton != null) {
+//            // highlight start dot todo
+//        }
+//        if (startButton == null || touchPoint == null) return
+//
+//        if (mOutsideTouch) {
+//            drawIntervalFill(canvas, startButton, touchPoint)
+//        } else {
+//            drawIntervalLine(canvas, startButton, touchPoint)
+//        }
+//    }
 
     private fun drawIntervalLine(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
         val startPoint = Point(startButton.note.position, mInnerRadius)
@@ -461,10 +489,13 @@ class NoteCircle @JvmOverloads constructor(
         fun draw(canvas: Canvas) {
             val dot = Dot(position)
             val label = Label(position, name)
+            val radial = Radial(position)
+            radial.draw(canvas, mHintPaint)
             if (!isHint) {
                 dot.draw(canvas, mDotPaint)
             }
             label.draw(canvas, if (isHint) mHintLabelPaint else mLabelPaint)
+
         }
 
         override fun equals(other: Any?): Boolean {
@@ -682,6 +713,9 @@ class NoteCircle @JvmOverloads constructor(
                 Log.d(DEBUG_TAG, "NoteButton pressed: ${button.note.name}")
             }
             mStartButton = button
+            mSweepAngle = 0f
+            mTouchPoint = null
+            mIsScrollOver = false
             return true
 
 //            mLineStart = Point(button.note.position, mInnerRadius)
@@ -697,53 +731,63 @@ class NoteCircle @JvmOverloads constructor(
 
 
         override fun onScroll(firstEvent: MotionEvent, currentEvent: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
-            if (mStartButton == null) return false
+            val startButton = mStartButton
+            if (startButton == null) return false
+
+            val startNote = startButton.note
+            val startPoint = Point(startNote.position, mInnerRadius)
+
+
             val touchPoint = Point.screen(currentEvent.x, currentEvent.y)
-            mEndButton = mNoteButtons.find { it.inSector(touchPoint)  }
-            if (mEndButton == mStartButton) {
-                val startPoint = Point(mStartButton?.note?.position ?: 0.0, mInnerRadius)
-                mScrollDirection = calculateDirection(touchPoint,
-                        touchPoint.x - startPoint.x,
-                        touchPoint.y - startPoint.y)
+            var sweep = touchPoint.screenAngle - (mTouchPoint ?: startPoint).screenAngle
+            sweep = when {
+                sweep < -180f -> sweep + 360f
+                sweep > 180f -> sweep - 360f
+                else -> sweep
             }
-            mOutsideTouch = touchPoint.distance > mInnerRadius
+
+            mSweepAngle += sweep
+            mTouchPoint = touchPoint
 
             invalidate()
             return true
+
+//
+//            val endButton = mNoteButtons.find { it.inSector(touchPoint)  }
+//            if (endButton == mStartButton) {
+//                val startPoint = Point(mStartButton?.note?.position ?: 0.0, mInnerRadius)
+//                mScrollDirection = calculateDirection(touchPoint,
+//                        touchPoint.x - startPoint.x,
+//                        touchPoint.y - startPoint.y)
+//            }
+//            mOutsideTouch = touchPoint.distance > mInnerRadius
+//            mTouchPoint = touchPoint
         }
 
 
 
+        override fun onFling(downEvent: MotionEvent?, upEvent: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
+            if (upEvent == null) return false
 
+            val startNote = mStartButton?.note ?: Note(0.0, "Z")
+            val startPoint = Point(startNote.position, mInnerRadius)
 
-//            val p = Point.screen(currentEvent.x, currentEvent.y, mCenterX, mCenterY)
-//            val selected = mSectors.find { p in it }
-//            if (selected == null) return false
-//
-//            if (firstSelected == null || prevSelected == null) {
-//                selected.isSelected = true
-//                prevSelected = selected
-//                firstSelected = selected
-//            }
-//
-//            if (prevSelected != selected) {
-//                val direction = calculateDirection(p, distanceX, distanceY)
-//                if (prevSelected == firstSelected) {
-//                    selected.isSelected = true
-//                    selectionDirection = direction
-//                } else {
-//                    if (direction == selectionDirection) {
-//                        selected.isSelected = true
-//                    } else {
-//                        prevSelected?.isSelected = false
-//                    }
-//
-//                }
-//                prevSelected = selected
-//            }
-//            invalidate()
-//            return true
-//        }
+            val touchPoint = Point.screen(upEvent.x, upEvent.y)
+
+            var sweep = touchPoint.screenAngle - (mTouchPoint ?: startPoint).screenAngle
+            sweep = when {
+                sweep < -180f -> sweep + 360f
+                sweep > 180f -> sweep - 360f
+                else -> sweep
+            }
+
+            mSweepAngle += sweep
+            mTouchPoint = touchPoint
+            mIsScrollOver = true
+
+            invalidate()
+            return true
+        }
 
         private fun calculateDirection(p: Point, distanceX: Float, distanceY: Float): NoteCircle.Direction {
             val movedRight = distanceX > 0
@@ -777,13 +821,5 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-    inner class NoteMap(val map: HashMap<Note, Point>) : MutableMap<Note, Point> by map {
-        fun at(note: Note): Point {
-            val point = map[note]
-            assert(point != null) {
-                "Note $note has no corresponding Point."
-            }
-            return point ?: Point(0.0, mInnerRadius)
-        }
-    }
+
 }
