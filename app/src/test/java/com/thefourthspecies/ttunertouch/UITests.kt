@@ -1,7 +1,6 @@
 package com.thefourthspecies.ttunertouch
 
 import org.junit.Test
-
 import org.junit.Assert.*
 
 /**
