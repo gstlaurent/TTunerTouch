@@ -13,6 +13,13 @@ import android.widget.TextView
 
 const val DEBUG_TAG = "TTuner"
 
+const val FLAT = "♭" // U+267D
+const val SHARP = "♯" // U+266F
+
+//const val FLAT = "b" // U+266D
+//const val SHARP = "#" // U+266F
+
+
 
 /**
  * Created by Graham on 2017-12-25.
@@ -56,11 +63,11 @@ class NoteCircle @JvmOverloads constructor(
     private var mRelationships: MutableSet<Relationship> = mutableSetOf()
     private var mNoteButtons: List<NoteButton> = listOf()
 
-    private var mNotes: MutableSet<Note> = mutableSetOf()
-    var notes: MutableSet<Note>
-        get() = mNotes
-        set(value) {
-            mNotes = value
+    private var mNotes: RingList<Note> = RingList<Note>()
+    var notes: Set<Note>
+        get() = mNotes.toSet()
+        set(noteSet) {
+            mNotes = RingList<Note>(noteSet)
             onDataChange()
         }
 
@@ -137,7 +144,7 @@ class NoteCircle @JvmOverloads constructor(
 
     fun initHintData() {
         val isHint = true
-        mNotes = mutableSetOf(
+        notes = mutableSetOf(
                 Note(0/12.0, "C", isHint),
                 Note(1/12.0, "G", isHint),
                 Note(2/12.0, "D", isHint),
@@ -168,7 +175,7 @@ class NoteCircle @JvmOverloads constructor(
         val Bf =  Note(10/12.0, "B$FLAT")
         val F =  Note(11/12.0, "F")
 
-        mNotes = mutableSetOf(C, G, D, A, E, B, Fs, Df, Af, Ef, Bf, F)
+        notes = mutableSetOf(C, G, D, A, E, B, Fs, Df, Af, Ef, Bf, F)
 
         val isArc = true
         mRelationships = mutableSetOf(
@@ -474,7 +481,7 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-    inner class Note(position: Double, val name: String, var isHint: Boolean = false) {
+    inner class Note(position: Double, val name: String, var isHint: Boolean = false) : Comparable<Note> {
         val position: Double = run {
             var pos = position % 1
             if (pos < 0) { pos + 1 } else pos
@@ -498,22 +505,21 @@ class NoteCircle @JvmOverloads constructor(
 
         }
 
+        override fun compareTo(other: Note): Int {
+            return position.compareTo(other.position)
+        }
+
+
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Note) return false
 
-            if (position != other.position) return false
             if (name != other.name) return false
-            if (isHint != other.isHint) return false
-
             return true
         }
 
         override fun hashCode(): Int {
-            var result = position.hashCode()
-            result = 31 * result + name.hashCode()
-            result = 31 * result + isHint.hashCode()
-            return result
+            return name.hashCode()
         }
 
         override fun toString(): String {
