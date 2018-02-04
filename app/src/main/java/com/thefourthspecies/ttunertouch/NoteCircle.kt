@@ -926,6 +926,14 @@ abstract class TouchInput(
 ) {
 
     protected var sweepAngle: Float = sweepAngle
+        set(newAngle) { // So that you never exceed 720 degrees of having to scroll back
+            val offset = when {
+                newAngle > 360f -> 360f
+                newAngle < -360f -> -360f
+                else -> 0f
+            }
+            field = offset + (newAngle % 360f)
+        }
 
     protected val direction: Direction
         get() = if (sweepAngle > 0) Direction.ASCENDING else Direction.DESCENDING
