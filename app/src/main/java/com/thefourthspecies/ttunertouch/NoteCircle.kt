@@ -173,9 +173,9 @@ class NoteCircle @JvmOverloads constructor(
         val E =  Note(4/12.0, "E")
         val B =  Note(5/12.0, "B")
         val Fs =  Note(6/12.0, "F$SHARP")
-        val Df =  Note(7/12.0, "D$FLAT")
-        val Af =  Note(8/12.0, "A$FLAT")
-        val Ef =  Note(9/12.0, "E$FLAT")
+        val Df =  Note(7/12.0, "D$FLAT", true)
+        val Af =  Note(8/12.0, "A$FLAT", true)
+        val Ef =  Note(9/12.0, "E$FLAT", true)
         val Bf =  Note(10/12.0, "B$FLAT")
         val F =  Note(11/12.0, "F")
 
@@ -191,10 +191,10 @@ class NoteCircle @JvmOverloads constructor(
                 Relationship(E, B, "", isArc),
                 Relationship(B, Fs, "", isArc),
                 Relationship(C, F, "", isArc),
-                Relationship(F, Bf, "", isArc),
-                Relationship(Bf, Ef, "", isArc),
-                Relationship(Ef, Af, "", isArc),
-                Relationship(Af, Df, "", isArc)
+                Relationship(F, Bf, "", isArc)
+//                Relationship(Bf, Ef, "", isArc),
+//                Relationship(Ef, Af, "", isArc),
+//                Relationship(Af, Df, "", isArc)
         )
 
 //        mSectors = mutableListOf(
@@ -216,10 +216,10 @@ class NoteCircle @JvmOverloads constructor(
 
         // Calculate inner and outer circle bounds for the ring
         val outerDiameter = Math.min(ww, hh)
-        mOuterRadius = outerDiameter/2.0f
+        mOuterRadius = outerDiameter/2f
         mInnerRadius = mOuterRadius * mInnerRadiusRatio
         mDotRadius = mInnerRadius * mDotRadiusRatio
-        mButtonRadius = mInnerRadius - (2*mDotRadius) // times 2 for safety
+        mButtonRadius = mInnerRadius/2f
 
         mLabelRadius = (3*mOuterRadius + mInnerRadius)/4f
         mCenterX = paddingLeft.toFloat() + mOuterRadius
@@ -319,8 +319,43 @@ class NoteCircle @JvmOverloads constructor(
     }
 
 
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
+        for (note in mNotes) {
+            val labelPaint = if (note.isHint) mHintLabelPaint else mLabelPaint
+            Label(note.position, note.name).draw(canvas, labelPaint)
+            Radial(note.position).draw(canvas, mHintPaint)
+        }
+
+        for (rel in mRelationships) {
+            rel.draw(canvas)
+        }
+
+        for (note in mNotes) {
+            val dotPaint = if (note.isHint) mHintLabelPaint else mDotPaint
+            Dot(note.position).draw(canvas, dotPaint)
+        }
+
+        mTouchInput?.draw(canvas)
+
+
+        // for note in notes
+        // draw: radial - hint(grey);
+        //       label - hint/black
+
+        // for rel in relationship
+        // draw: rel (line or arc) - solid(black)
+
+        // for note in notes:
+        // draw: dot - hint/black
+
+        // draw: touchInput
+
+
+
+
 
 //        mStartButton?.let {
 //            val startNote = it.note
@@ -329,11 +364,11 @@ class NoteCircle @JvmOverloads constructor(
 //        }
 
 //        canvas.drawCircle(mCenterX, mCenterY, mOuterRadius, mHintPaint)
-        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
-
-        for (sec in mSectors) {
-            sec.draw(canvas)
-        }
+//        canvas.drawCircle(mCenterX, mCenterY, mInnerRadius, mHintPaint)
+//
+//        for (sec in mSectors) {
+//            sec.draw(canvas)
+//        }
 
 //        for (rel in mViewState.relationships) {
 //            val start = rel.note1.point
@@ -355,12 +390,6 @@ class NoteCircle @JvmOverloads constructor(
 //        for (rel in mRelationships) {
 //            rel.draw(canvas)
 //        }
-
-        for (note in mNotes) {
-            note.draw(canvas)
-        }
-
-        mTouchInput?.draw(canvas)
 
 
 //
@@ -384,66 +413,66 @@ class NoteCircle @JvmOverloads constructor(
 //        }
 //    }
 
-    private fun drawIntervalLine(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
-        val startPoint = Point(startButton.note.position, mInnerRadius)
-        val endPoint = Point(endButton.note.position, mInnerRadius)
-        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
-//
-//        val endButton = mNoteButtons.find { touchPoint in it }
-//        val endPoint = if (endButton != null && startButton != endButton) {
-//            Point(endButton.note.position, mInnerRadius)
-//        } else {
-//            touchPoint
-//        }
+//    private fun drawIntervalLine(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
 //        val startPoint = Point(startButton.note.position, mInnerRadius)
+//        val endPoint = Point(endButton.note.position, mInnerRadius)
 //        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
-    }
-
-    private fun drawIntervalFill(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
-        val startPoint = Point(startButton.note.position, mInnerRadius)
-        val endPoint = Point(endButton.note.position, mInnerRadius)
-        val diffAngle = endPoint.screenAngle - startPoint.screenAngle
-
-        val sweepAngle = if (mScrollDirection == Direction.CLOCKWISE) {
-            if (diffAngle < 0) {
-                diffAngle + 360f
-            } else {
-                diffAngle
-            }
-        } else {
-            if (diffAngle < 0) {
-                diffAngle
-            } else {
-                diffAngle - 360f
-            }
-        }
-
-        val hasCenter = true
-        canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, hasCenter, mSectorPaint)
-    }
-
-
-
-
-//        val endButton = mNoteButtons.find { it.inSector(touchPoint) }
-//        if (endButton == null || startButton == endButton) return
-
+////
+////        val endButton = mNoteButtons.find { touchPoint in it }
+////        val endPoint = if (endButton != null && startButton != endButton) {
+////            Point(endButton.note.position, mInnerRadius)
+////        } else {
+////            touchPoint
+////        }
+////        val startPoint = Point(startButton.note.position, mInnerRadius)
+////        canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mLinePaint)
 //    }
-
-
 //
+//    private fun drawIntervalFill(canvas: Canvas, startButton: NoteButton, endButton: NoteButton) {
 //        val startPoint = Point(startButton.note.position, mInnerRadius)
-//        val endButton = mNoteButtons.find { touchPoint in it }
+//        val endPoint = Point(endButton.note.position, mInnerRadius)
+//        val diffAngle = endPoint.screenAngle - startPoint.screenAngle
 //
-//
-//
-//        if (touchPoint.distance < mInnerRadius) {
-//            // todo line paint
-//            canvas.drawLine(startPoint.x, startPoint.y, touchPoint.x, touchPoint.y)
-//
+//        val sweepAngle = if (mScrollDirection == Direction.CLOCKWISE) {
+//            if (diffAngle < 0) {
+//                diffAngle + 360f
+//            } else {
+//                diffAngle
+//            }
+//        } else {
+//            if (diffAngle < 0) {
+//                diffAngle
+//            } else {
+//                diffAngle - 360f
+//            }
 //        }
 //
+//        val hasCenter = true
+//        canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, hasCenter, mSectorPaint)
 //    }
+//
+//
+//
+//
+////        val endButton = mNoteButtons.find { it.inSector(touchPoint) }
+////        if (endButton == null || startButton == endButton) return
+//
+////    }
+//
+//
+////
+////        val startPoint = Point(startButton.note.position, mInnerRadius)
+////        val endButton = mNoteButtons.find { touchPoint in it }
+////
+////
+////
+////        if (touchPoint.distance < mInnerRadius) {
+////            // todo line paint
+////            canvas.drawLine(startPoint.x, startPoint.y, touchPoint.x, touchPoint.y)
+////
+////        }
+////
+////    }
 
     inner class Relationship(val note1: Note, val note2: Note, val label: String, val isArc: Boolean) {
         var start = Point(note1.position, mInnerRadius)
