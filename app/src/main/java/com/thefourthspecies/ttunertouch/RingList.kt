@@ -79,9 +79,9 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     private fun findPrevious(map: MutableMap<T, Pointers<T>>, item: T, first: T): T {
-        val next = iterateFrom(map, first, Direction.ASCENDING).find { it >= item }
+        val next = iterateUntilExcluding(map, first, first, Direction.ASCENDING).find { it >= item }
         val prev = if (next == null) {
-            iterateFrom(map, first, Direction.ASCENDING).last()
+            iterateUntilExcluding(map, first, first, Direction.ASCENDING).last()
         } else {
             map[next]!!.prev
         }
@@ -97,46 +97,47 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
         )
     }
 
-    private fun iterateFrom(map: MutableMap<T, Pointers<T>>, start: T, direction: Direction): Iterable<T> {
-        if (map.isEmpty()) {
+    private fun iterateUntilExcluding(map: MutableMap<T, Pointers<T>>, start: T?, end: T?, direction: Direction): Iterable<T> {
+        if (map.isEmpty() || start == null || end == null) {
             return emptyList<T>()
         }
 
         return object : Iterable<T> {
             override fun iterator(): Iterator<T> {
-                return RingIterator(map, start, direction)
+                return RingIterator(map, start, end, direction)
             }
         }
     }
 
     fun iterateFrom(start: T, direction: Direction): Iterable<T> {
-        return iterateFrom(mItems, start, direction)
+        return iterateUntilExcluding(mItems, start, start, direction)
+    }
+
+    fun iterateUntilExcluding(start: T, end: T, direction: Direction): Iterable<T> {
+        return iterateUntilExcluding(mItems, start, end, direction)
     }
 
     override fun iterator(): Iterator<T> {
-        return RingIterator<T>(mItems, mFirst, Direction.ASCENDING)
+        return iterateUntilExcluding(mItems, mFirst, mFirst, Direction.ASCENDING).iterator()
     }
 
-    private class RingIterator<T>(val map: MutableMap<T, Pointers<T>>, val start: T?, val direction: Direction) : AbstractIterator<T>() {
-        var current = start
+    private class RingIterator<T>(val map: MutableMap<T, Pointers<T>>, val start: T, val end: T, val direction: Direction) : AbstractIterator<T>() {
+        var curr = start
         var isStarting = true
 
         init {
-            assert(map.contains(start) || start == null) {
-                "RingIterator starting from item that is not present in RingList: start=$start"
+            assert(map.contains(start) && map.containsKey(end)) {
+                "RingIterator starting or ending at item that is not present in RingList: start=$start, end=$end"
             }
         }
 
         override fun computeNext() {
-            val curr = current
-            if (curr != null && start != null) {
-                if (curr != start || isStarting) {
-                    setNext(curr)
+            if (curr != end || isStarting) {
+                setNext(curr)
 
-                    val pointers = map[curr]!!
-                    current = if (direction == Direction.ASCENDING) pointers.next else pointers.prev
-                    isStarting = false
-                }
+                val pointers = map[curr]!!
+                curr = if (direction == Direction.ASCENDING) pointers.next else pointers.prev
+                isStarting = false
             } else {
                done()
             }
