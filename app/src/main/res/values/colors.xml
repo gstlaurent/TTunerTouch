@@ -14,4 +14,6 @@
     <color name="green">#ff00ff00</color>
     <color name="amber">#ffffa800</color>
     <color name="grey">#ffdddddd</color>
+    <color name="blue">#ff0000ff</color>
+    <color name="red">#ffff0000</color>
 </resources>

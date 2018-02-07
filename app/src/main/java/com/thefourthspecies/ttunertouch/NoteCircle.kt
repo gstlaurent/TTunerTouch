@@ -41,6 +41,9 @@ class NoteCircle @JvmOverloads constructor(
     private var mDotRadiusRatio: Float by attributable(0.0f) // Dot Radius to Inner Radius
     private var mInnerRadiusRatio: Float by attributable(0.0f) // Inner Radius to Outer Radius
     private var mHintColor: Int by attributable(0)
+    private var mSelectColor: Int by attributable(0)
+    private var mHighlightColor: Int by attributable(0)
+    private var mDirectThickness: Float by attributable(0f)
 
     // Paint Objects
     lateinit var mLinePaint: Paint
@@ -49,6 +52,10 @@ class NoteCircle @JvmOverloads constructor(
     lateinit var mHintPaint: Paint
     lateinit var mHintLabelPaint: Paint
     lateinit var mSectorPaint: Paint
+    lateinit var mSelectPaint: Paint
+    lateinit var mHighlightPaint: Paint
+    lateinit var mDirectPaint: Paint
+
 
 
     // Dimensions
@@ -92,21 +99,25 @@ class NoteCircle @JvmOverloads constructor(
 
     var mViewState: NoteCircleViewState = NoteCircleViewState()
 
+
     init {
         val a = context.theme.obtainStyledAttributes(
             attrs,
-            R.styleable.NoteRing,
+            R.styleable.NoteCircle,
             0, 0)
         try {
-            mLabelColor = a.getColor(R.styleable.NoteRing_labelColor, -0x1000000)
-            mLabelHeight = a.getDimension(R.styleable.NoteRing_labelHeight, 0.0f)
-            mLabelWidth = a.getDimension(R.styleable.NoteRing_labelHeight, 0.0f) // todo: remove?
-            mLineColor = a.getColor(R.styleable.NoteRing_lineColor, -0x1000000)
-            mLineThickness = a.getDimension(R.styleable.NoteRing_lineThickness, 0.0f)
-            mDotColor = a.getColor(R.styleable.NoteRing_dotColor, -0x1000000)
-            mDotRadiusRatio = a.getFloat(R.styleable.NoteRing_dotRadiusRatio, 0.0f)
-            mInnerRadiusRatio = a.getFloat(R.styleable.NoteRing_innerRadiusRatio, 0.5f)
-            mHintColor = a.getColor(R.styleable.NoteRing_hintColor, -0x1000000)
+            mLabelColor = a.getColor(R.styleable.NoteCircle_labelColor, -0x1000000)
+            mLabelHeight = a.getDimension(R.styleable.NoteCircle_labelHeight, 0.0f)
+            mLabelWidth = a.getDimension(R.styleable.NoteCircle_labelHeight, 0.0f) // todo: remove?
+            mLineColor = a.getColor(R.styleable.NoteCircle_lineColor, -0x1000000)
+            mLineThickness = a.getDimension(R.styleable.NoteCircle_lineThickness, 0.0f)
+            mDirectThickness = a.getDimension(R.styleable.NoteCircle_directThickness, 0.0f)
+            mDotColor = a.getColor(R.styleable.NoteCircle_dotColor, -0x1000000)
+            mDotRadiusRatio = a.getFloat(R.styleable.NoteCircle_dotRadiusRatio, 0.0f)
+            mInnerRadiusRatio = a.getFloat(R.styleable.NoteCircle_innerRadiusRatio, 0.5f)
+            mHintColor = a.getColor(R.styleable.NoteCircle_hintColor, -0x1000000)
+            mSelectColor = a.getColor(R.styleable.NoteCircle_selectColor, Color.BLUE)
+            mHighlightColor = a.getColor(R.styleable.NoteCircle_highlightColor, Color.RED)
         } finally {
             a.recycle()
         }
@@ -118,6 +129,8 @@ class NoteCircle @JvmOverloads constructor(
 
         initTestData()
     }
+
+
 
     fun initPaint() {
         mLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -141,9 +154,23 @@ class NoteCircle @JvmOverloads constructor(
         mHintLabelPaint.textSize = mLabelHeight
         mHintLabelPaint.color = mHintColor
 
-        mSectorPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        mSectorPaint.color = Color.BLUE // todo
-        mSectorPaint.style = Paint.Style.FILL
+        mSelectPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mSelectPaint.color = mSelectColor
+        mSelectPaint.style = Paint.Style.FILL
+
+        mHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mHighlightPaint.color = mHighlightColor
+        mHighlightPaint.style = Paint.Style.FILL
+
+        mDirectPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        mDirectPaint.color = mSelectColor
+        mDirectPaint.style = Paint.Style.STROKE
+        mDirectPaint.strokeWidth = mDirectThickness
+        mDirectPaint.strokeCap = Paint.Cap.BUTT
+
+
+
+
     }
 
     fun initHintData() {
@@ -184,14 +211,14 @@ class NoteCircle @JvmOverloads constructor(
         val isArc = true
         mRelationships = mutableSetOf(
                 Relationship(C, E, "", !isArc),
-                Relationship(C, G, "-1/4S", !isArc),
-                Relationship(G, D, "-1/4S", !isArc),
-                Relationship(D, A, "-1/4S", !isArc),
-                Relationship(A, E, "-1/4S", !isArc),
-                Relationship(E, B, "", isArc),
-                Relationship(B, Fs, "", isArc),
-                Relationship(C, F, "", isArc),
-                Relationship(F, Bf, "", isArc)
+                Relationship(C, G, "-1/4S", isArc),
+                Relationship(G, D, "-1/4S", isArc),
+                Relationship(D, A, "-1/4S", isArc),
+                Relationship(A, E, "-1/4S", isArc),
+                Relationship(E, B, "", !isArc),
+                Relationship(B, Fs, "", !isArc),
+                Relationship(C, F, "", !isArc),
+                Relationship(F, Bf, "", !isArc)
 //                Relationship(Bf, Ef, "", isArc),
 //                Relationship(Ef, Af, "", isArc),
 //                Relationship(Af, Df, "", isArc)
@@ -268,7 +295,10 @@ class NoteCircle @JvmOverloads constructor(
      * Start and End are assuming clockwise direction
      */
     fun drawArc(canvas: Canvas, startAngle: Float, endAngle: Float) {
-        val sweepAngle = endAngle - startAngle
+        var sweepAngle = endAngle - startAngle
+        if (sweepAngle < 0) {
+            sweepAngle += 360f
+        }
         canvas.drawArc(mInnerCircleBounds, startAngle, sweepAngle, false, mLinePaint)
     }
 
@@ -301,7 +331,7 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        val p = Point.screen(event!!.x, event!!.y)
+        val p = Point.screen(event!!.x, event.y)
         textView.text = """
             |Center: ($mCenterX, $mCenterY)
             |Screen: (${p.x}, ${p.y})
@@ -579,7 +609,8 @@ class NoteCircle @JvmOverloads constructor(
             canvas.drawLine(mCenterX, mCenterY, start.x, start.y, mHintPaint)
             canvas.drawLine(mCenterX, mCenterY, end.x, end.y, mHintPaint)
             if (isSelected) {
-                canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isSelected, mSectorPaint)
+//                canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isSelected, mSectorPaint)
+                canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isSelected, mSelectPaint)
             }
         }
 
@@ -900,9 +931,16 @@ class NoteCircle @JvmOverloads constructor(
         }
 
         override fun draw(canvas: Canvas) {
-            canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mSectorPaint)
-            startNote?.draw(canvas, mSectorPaint)
-            endNote?.draw(canvas, mSectorPaint)
+            canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mDirectPaint)
+            startNote?.let {
+                Dot(it.position).draw(canvas, mHighlightPaint)
+                Radial(it.position).draw(canvas, mHighlightPaint)
+            }
+
+            endNote?.let {
+                Dot(it.position).draw(canvas, mHighlightPaint)
+                Radial(it.position).draw(canvas, mHighlightPaint)
+            }
         }
     }
 
@@ -922,17 +960,21 @@ class NoteCircle @JvmOverloads constructor(
 
         override fun draw(canvas: Canvas) {
             val useCenter = true
-            canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, useCenter, mSectorPaint)
+            canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, useCenter, mSelectPaint)
             // for (note in startnote..previous(startpoint)) // TODO
             //     note.drawradial = mSectorPaint
 
-            startNote?.draw(canvas, mSectorPaint)
-
-            if (abs(sweepAngle) <= 360f) {
-                endNote?.draw(canvas, mSectorPaint)
+            startNote?.let {
+                Dot(it.position).draw(canvas, mHighlightPaint)
+                Radial(it.position).draw(canvas, mHighlightPaint)
             }
 
-
+            if (abs(sweepAngle) < 360f) {
+                endNote?.let {
+                    Dot(it.position).draw(canvas, mHighlightPaint)
+                    Radial(it.position).draw(canvas, mHighlightPaint)
+                }
+            }
         }
 
         override fun next(touchPoint: Point): TouchInput {

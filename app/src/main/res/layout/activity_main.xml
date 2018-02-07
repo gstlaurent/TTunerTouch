@@ -56,6 +56,8 @@
         app:dotRadiusRatio="0.03"
         app:innerRadiusRatio="0.80"
         app:labelColor="@android:color/black"
+        app:highlightColor="@color/red"
+        app:selectColor="@color/blue"
         app:labelHeight="25dp"
         app:labelWidth="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -67,6 +69,7 @@
         app:layout_constraintVertical_bias="1.0"
         app:lineColor="@android:color/black"
         app:lineThickness="1dp"
+        app:directThickness="2dp"
         app:hintColor="@color/grey"/>
 
 </android.support.constraint.ConstraintLayout>

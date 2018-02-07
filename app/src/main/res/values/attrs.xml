@@ -9,18 +9,21 @@
     <attr name="dotColor" format="color"/>
     <attr name="dotRadiusRatio" format="float"/>
     <attr name="innerRadiusRatio" format="float"/>
+    <attr name="selectColor" format="color"/>
+    <attr name="highlightColor" format="color"/>
+    <attr name="hintColor" format="color"/>
+    <attr name="directThickness" format="dimension"/>
 
-    <declare-styleable name="NoteRing">
-        <attr name="labelColor"/>
-        <attr name="labelHeight"/>
-        <attr name="labelWidth"/>
-        <attr name="lineColor"/>
-        <attr name="lineThickness"/>
-        <attr name="dotColor"/>
-        <attr name="dotRadiusRatio"/>
-        <attr name="innerRadiusRatio"/>
-        <attr name="hintColor" format="color"/>
-    </declare-styleable>
+    <!--<declare-styleable name="NoteRing">-->
+        <!--<attr name="labelColor"/>-->
+        <!--<attr name="labelHeight"/>-->
+        <!--<attr name="labelWidth"/>-->
+        <!--<attr name="lineColor"/>-->
+        <!--<attr name="lineThickness"/>-->
+        <!--<attr name="dotColor"/>-->
+        <!--<attr name="dotRadiusRatio"/>-->
+        <!--<attr name="innerRadiusRatio"/>-->
+    <!--</declare-styleable>-->
 
     <declare-styleable name="NoteCircle">
         <attr name="labelColor"/>
@@ -31,6 +34,10 @@
         <attr name="dotColor"/>
         <attr name="dotRadiusRatio"/>
         <attr name="innerRadiusRatio"/>
+        <attr name="highlightColor"/>
+        <attr name="selectColor"/>
+        <attr name="hintColor"/>
+        <attr name="directThickness"/>
     </declare-styleable>
 
     <!--<declare-styleable name="PieChart">-->
