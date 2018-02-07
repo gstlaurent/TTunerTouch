@@ -359,10 +359,10 @@ class NoteCircle @JvmOverloads constructor(
             Radial(note.position).draw(canvas, mHintPaint)
         }
 
+
         for (rel in mRelationships) {
             rel.draw(canvas)
         }
-
         for (note in mNotes) {
             val dotPaint = if (note.isHint) mHintLabelPaint else mDotPaint
             Dot(note.position).draw(canvas, dotPaint)
@@ -961,19 +961,30 @@ class NoteCircle @JvmOverloads constructor(
         override fun draw(canvas: Canvas) {
             val useCenter = true
             canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, useCenter, mSelectPaint)
-            // for (note in startnote..previous(startpoint)) // TODO
-            //     note.drawradial = mSectorPaint
 
-            startNote?.let {
-                Dot(it.position).draw(canvas, mHighlightPaint)
-                Radial(it.position).draw(canvas, mHighlightPaint)
+            for (rel in mRelationships) {
+                rel.draw(canvas)
             }
 
-            if (abs(sweepAngle) < 360f) {
-                endNote?.let {
-                    Dot(it.position).draw(canvas, mHighlightPaint)
-                    Radial(it.position).draw(canvas, mHighlightPaint)
+            drawDotsAndRadials(canvas, startNote, endNote)
+        }
+
+        fun drawDotsAndRadials(canvas: Canvas, startNote: Note?, endNote: Note?) {
+            if (startNote == null || endNote == null) return
+
+            if (startNote != endNote) {
+                for (note in mNotes.iterateUntilExcluding(startNote, endNote, direction)) {
+                    Radial(note.position).draw(canvas, mHighlightPaint)
+                    Dot(note.position).draw(canvas, mDotPaint)
                 }
+            }
+
+            Radial(startNote.position).draw(canvas, mHighlightPaint)
+            Dot(startNote.position).draw(canvas, mHighlightPaint)
+
+            if (abs(sweepAngle) < 360f) {
+                Radial(endNote.position).draw(canvas, mHighlightPaint)
+                Dot(endNote.position).draw(canvas, mHighlightPaint)
             }
         }
 
