@@ -8,11 +8,10 @@ enum class Comma(ratio: Rational, val symbol: String) {
     ENHARMONIC(Rational(128, 125), "E"), // P8/3*M3 = (2^12)/((5/4)^3) = (2^7)/(5^3)
     PURE(Rational(1,1), "=")
 }
-data class Temper(val magnitude: Rational, val comma: Comma)
+data class Temper(val interval: Interval, val fraction: Rational, val comma: Comma)
 
 /**
- * Two Relationships are considered equal if they contain the same notes, whether they are note2 or note1,
- * and regardless of the Temper
+ * Two Relationships are considered equal if they contain the same notes, whether they are note2 or note1.
  */
 class Relationship(note1: Note, note2: Note, val temper: Temper) {
     val note1 = minOf(note1, note2)
@@ -24,6 +23,7 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
 
         if (note1 != other.note1) return false
         if (note2 != other.note2) return false
+        if (temper != other.temper) return false
 
         return true
     }
@@ -31,6 +31,7 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
     override fun hashCode(): Int {
         var result = note1.hashCode()
         result = 31 * result + note2.hashCode()
+        result = 31 * result + temper.hashCode()
         return result
     }
 
@@ -39,41 +40,101 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
     }
 }
 
-/**
- * Created by Graham on 2018-01-04.
- */
+
 class Temperament {
-    private var _notes: HashSet<Note> = HashSet()
-    val notes: List<Note>
-        get() = _notes.toList()
-
-    private var _relationships: HashSet<Relationship> = HashSet()
+    private val relationshipGraph = HashMap<Note, MutableList<Destination>>()
     val relationships: List<Relationship>
-        get() = _relationships.toList()
+        get() {
+            val relSet = mutableSetOf<Relationship>()
+            val rels: List<Relationship> = relationshipGraph.flatMap {
+                (note, dests) -> dests.map { Relationship(note, it.note, it.temper)  }
+            }
+            return rels
+        }
 
+    data class Destination(val note: Note, val temper: Temper)
 
     fun addNote(note: Note) {
-        _notes.add(note)
-    }
-
-    fun removeNote(note: Note) {
-        _notes.remove(note)
-
-        val iterate = _relationships.iterator()
-        while (iterate.hasNext()) {
-            val rel = iterate.next()
-            if (rel.note1 == note || rel.note2 == note) {
-                iterate.remove()
-            }
+        if (!relationshipGraph.containsKey(note)) {
+            relationshipGraph[note] = mutableListOf<Destination>()
         }
     }
 
-    fun setRelationship(relationship: Relationship) {
-        _relationships.remove(relationship)
-        _relationships.add(relationship)
+    fun removeNote(note: Note) {
+        if (!relationshipGraph.contains(note)) return
+
+        val dests = destinationsFrom(note)
+        relationshipGraph.remove(note)
+
+        for ((dNote, _) in dests) {
+            removeReferences(dNote, note)
+        }
     }
 
-    fun deleteRelationship(relationship: Relationship) {
-        _relationships.remove(relationship)
+    private fun destinationsFrom(note: Note): MutableList<Destination> {
+        return relationshipGraph[note] ?: mutableListOf<Destination>()
     }
+
+    private fun removeReferences(fromNote: Note, toNote: Note) {
+        destinationsFrom(fromNote).removeAll {
+            it.note == toNote
+        }
+    }
+
+    fun setRelationship(rel: Relationship) {
+        removeRelationship(rel)
+        destinationsFrom(rel.note1).add(Destination(rel.note2, rel.temper))
+        destinationsFrom(rel.note2).add(Destination(rel.note1, rel.temper))
+    }
+
+    fun removeRelationship(rel: Relationship) {
+        removeReferences(rel.note1, rel.note2)
+        removeReferences(rel.note2, rel.note1)
+    }
+
+
+
+
+
 }
+
+///**
+// * Created by Graham on 2018-01-04.
+
+// This only works if Relationship doesn't use Temper in hashCode or Equals
+// */
+//class Temperament {
+//    private var _notes: HashSet<Note> = HashSet()
+//    val notes: List<Note>
+//        get() = _notes.toList()
+//
+//    private var _relationships: HashSet<Relationship> = HashSet()
+//    val relationships: List<Relationship>
+//        get() = _relationships.toList()
+//
+//
+//    fun addNote(note: Note) {
+//        _notes.add(note)
+//    }
+//
+//    fun removeNote(note: Note) {
+//        _notes.remove(note)
+//
+//        val iterate = _relationships.iterator()
+//        while (iterate.hasNext()) {
+//            val rel = iterate.next()
+//            if (rel.note1 == note || rel.note2 == note) {
+//                iterate.remove()
+//            }
+//        }
+//    }
+//
+//    fun setRelationship(relationship: Relationship) {
+//        _relationships.remove(relationship)
+//        _relationships.add(relationship)
+//    }
+//
+//    fun deleteRelationship(relationship: Relationship) {
+//        _relationships.remove(relationship)
+//    }
+//}
