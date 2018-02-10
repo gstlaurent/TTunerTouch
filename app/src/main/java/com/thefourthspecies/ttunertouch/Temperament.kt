@@ -52,7 +52,7 @@ class Temperament {
             return rels
         }
 
-    data class Destination(val note: Note, val temper: Temper)
+    private data class Destination(val note: Note, val temper: Temper)
 
     fun addNote(note: Note) {
         if (!relationshipGraph.containsKey(note)) {
@@ -91,11 +91,6 @@ class Temperament {
         removeReferences(rel.note1, rel.note2)
         removeReferences(rel.note2, rel.note1)
     }
-
-
-
-
-
 }
 
 ///**
