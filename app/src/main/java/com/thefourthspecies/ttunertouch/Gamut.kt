@@ -14,6 +14,50 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
 
     val accidentalNumeric: Int = accidental.parity * numAccidental
 
+    /**
+     * Returns a list of all Notes that are a temperable Interval away from the given Note
+     */
+    fun relations(): List<Note> {
+        return Interval.values().map { atIntervalAbove(it) }
+    }
+
+
+    fun atIntervalAbove(interval: Interval): Note {
+        val upperLetter = letterAtOffset(letter.diatonicOffset + interval.diatonicDifference)
+        val adjustedChromaticOffset = letter.chromaticOffset + accidentalNumeric
+        val upperDiatonicDifference = chromaticMod(upperLetter.chromaticOffset - adjustedChromaticOffset)
+        val numAccidental = interval.chromaticDifference - upperDiatonicDifference
+
+        val upperAccidental = when {
+            numAccidental > 0 -> Accidental.SHARP // must widen interval
+            numAccidental < 0 -> Accidental.FLAT // must shrink interval
+            else -> Accidental.NONE
+        }
+        val outNote = Note(upperLetter, upperAccidental, Math.abs(numAccidental))
+        return outNote
+    }
+
+    /**
+     * Returns the letter that has the given diatonic offset
+     */
+    private fun letterAtOffset(offset: Int): Letter {
+        val o = offset % Letter.values().size
+        val letter = Letter.values().find { it.diatonicOffset == o }
+        return letter!!
+    }
+
+    /**
+     * Returns the offset in semitones, from 0-11.
+     */
+    private fun chromaticMod(offset: Int): Int {
+        val o = if (offset < 0) {
+            offset + CHROM_SIZE
+        } else {
+            offset
+        }
+        return o % CHROM_SIZE
+    }
+
     override operator fun compareTo(other: Note): Int {
         val result = when {
             letter > other.letter -> 1
@@ -82,45 +126,3 @@ enum class Interval(val diatonicDifference: Int, val chromaticDifference: Int, v
     MAJOR_SIXTH(5, 9, Rational(8, 5))
 }
 
-/**
- * Returns a list of all Notes that are a temperable Interval away from the given Note
- */
-fun relations(note: Note): List<Note> {
-    return Interval.values().map { atIntervalAbove(note, it) }
-}
-
-/**
- * Returns the letter that has the given diatonic offset
- */
-fun letterAtOffset(offset: Int): Letter {
-    val o = offset % Letter.values().size
-    val letter = Letter.values().find { it.diatonicOffset == o }
-    return letter!!
-}
-
-/**
- * Returns the offset in semitones, from 0-11.
- */
-fun chromaticMod(offset: Int): Int {
-    val o = if (offset < 0) {
-       offset + CHROM_SIZE
-    } else {
-        offset
-    }
-    return o % CHROM_SIZE
-}
-
-fun atIntervalAbove(note: Note, interval: Interval): Note {
-    val upperLetter = letterAtOffset(note.letter.diatonicOffset + interval.diatonicDifference)
-    val adjustedChromaticOffset = note.letter.chromaticOffset + note.accidentalNumeric
-    val upperDiatonicDifference = chromaticMod(upperLetter.chromaticOffset - adjustedChromaticOffset)
-    val numAccidental = interval.chromaticDifference - upperDiatonicDifference
-
-    val upperAccidental = when {
-        numAccidental > 0 -> Accidental.SHARP // must widen interval
-        numAccidental < 0 -> Accidental.FLAT // must shrink interval
-        else -> Accidental.NONE
-    }
-    val outNote = Note(upperLetter, upperAccidental, Math.abs(numAccidental))
-    return outNote
-}

@@ -12,7 +12,7 @@ class ModelTests {
     @Test
     fun intervalTests() {
         val n = Note(Letter.A)
-        val nn = relations(n)
+        val nn = n.relations()
         val actualNotes = HashSet<Note>(nn)
         val expectedNotes = mutableSetOf<Note>(
                 Note(Letter.C),

@@ -1,5 +1,6 @@
 package com.thefourthspecies.ttunertouch
 
+import android.util.Log
 import android.util.Rational
 
 enum class Comma(ratio: Rational, val symbol: String) {
@@ -40,8 +41,22 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
     }
 }
 
+typealias Hertz = Double
 
-class Temperament {
+class Temperament(referencePitch: Hertz, referenceNote: Note) {
+    var referencePitch: Hertz = referencePitch
+        set(freq) {
+            field = freq
+            invalidate()
+        }
+    var referenceNote: Note = referenceNote
+        set(note) {
+            field = note
+            invalidate()
+        }
+
+    private val pitches = HashMap<Note, Hertz?>()
+
     private val relationshipGraph = HashMap<Note, MutableList<Destination>>()
     val relationships: List<Relationship>
         get() {
@@ -81,16 +96,68 @@ class Temperament {
         }
     }
 
-    fun setRelationship(rel: Relationship) {
-        removeRelationship(rel)
-        destinationsFrom(rel.note1).add(Destination(rel.note2, rel.temper))
-        destinationsFrom(rel.note2).add(Destination(rel.note1, rel.temper))
+    fun setRelationship(from: Note, to: Note, temper: Temper) {
+        removeRelationship(from, to)
+        destinationsFrom(from).add(Destination(to, temper))
+        destinationsFrom(to).add(Destination(from, temper))
+
+        updatePitch(from, to, temper)
     }
 
-    fun removeRelationship(rel: Relationship) {
-        removeReferences(rel.note1, rel.note2)
-        removeReferences(rel.note2, rel.note1)
+    fun removeRelationship(note1: Note, note2: Note) {
+        removeReferences(note1, note2)
+        removeReferences(note2, note1)
     }
+
+    private fun updatePitch(from: Note, to: Note, temper: Temper) {
+        when {
+            from.hasPitch() && to.hasPitch() -> updatePitchFromBase(from, to, temper)
+            from.hasPitch() -> updatePitchFromBase(from, to, temper)
+            to.hasPitch() -> updatePitchFromBase(to, from, temper)
+            else -> {/*neither has a pitch, so nothing to update*/}
+        }
+    }
+
+    private fun updatePitchFromBase(base: Note, dest: Note, temper: Temper) {
+        val basePitch = base.pitch()
+        if (basePitch != null) {
+            val direction = intervalDirection(base, dest, temper.interval)
+            pitches[dest] = calculateTemperedPitch(basePitch, direction, temper)
+        } else {
+            Log.d(DEBUG_TAG,
+                    "${::updatePitchFromBase.name}: " +
+                            "Invalidating Temperament pitches unexpectedly because base pitch is null." +
+                            " base=$base, dest=$dest, temper=$temper")
+            invalidate()
+        }
+    }
+
+    private fun intervalDirection(from: Note, to: Note, interval: Interval): Direction {
+        return when {
+            from.atIntervalAbove(interval) == to -> Direction.ASCENDING
+            to.atIntervalAbove(interval) == from -> Direction.DESCENDING
+            else -> throw Exception("Interval does not apply for notes: from=$from, to=$to, interval=$interval")
+        }
+    }
+
+    private fun calculateTemperedPitch(basePitch: Hertz, direction: Direction, temper: Temper): Hertz {
+        // todo
+        return 0.0
+    }
+
+
+    private fun invalidate() {
+        pitches.clear()
+        calculateAllPitches()
+    }
+
+    private fun calculateAllPitches() {
+        pitches[referenceNote] = referencePitch
+        // todo
+    }
+
+    fun Note.pitch(): Hertz? = pitches[this]
+    fun Note.hasPitch(): Boolean = pitches.containsKey(this)
 }
 
 ///**
