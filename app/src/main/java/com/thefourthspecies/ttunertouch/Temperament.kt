@@ -1,14 +1,30 @@
 package com.thefourthspecies.ttunertouch
 
 import android.util.Log
+import kotlin.math.abs
 
-enum class Comma(ratio: Double, val symbol: String) {
+enum class Comma(val ratio: Double, val symbol: String) {
     PYTHAGOREAN(531441.0/524288.0, "P"), // (12*P5)/(7*P8) = ((3/2)^12)/(2^7) = (3^12)/(2^19)
     SYNTONIC(81.0/80.0, "S"), // (4*P5)/(1*M3+2*P8) = (3/2)^4/(5/4 * 2^2) = (3^4)/((2^4)*5)
     ENHARMONIC(128.0/125.0, "E"), // P8/3*M3 = (2^12)/((5/4)^3) = (2^7)/(5^3)
     PURE(1.0, "=")
 }
-data class Temper(val interval: Interval, val fraction: Double, val comma: Comma)
+
+// fraction: a positive or negative (or 0) value indicating the direction and amount of temper by the comma
+data class Temper(val interval: Interval, val fraction: Double, val comma: Comma) {
+    val temperedRatio: Double
+        get() = interval.ratio * commaFractionRatio
+
+    private val commaFractionRatio: Double
+        get() {
+            val magnitude = abs(comma.ratio * fraction)
+            return when {
+                fraction > 0.0 -> magnitude
+                fraction < 0.0 -> 1.0 / magnitude
+                else -> 1.0
+            }
+        }
+}
 
 /**
  * Two Relationships are considered equal if they contain the same notes, whether they are note2 or note1.
@@ -118,16 +134,18 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
     }
 
     private fun updatePitchFromBase(base: Note, dest: Note, temper: Temper) {
-        val basePitch = base.pitch()
+        val basePitch = base.pitch
         if (basePitch != null) {
             val direction = intervalDirection(base, dest, temper.interval)
-            pitches[dest] = calculateTemperedPitch(basePitch, direction, temper)
+            val pitch = calculateTemperedPitch(basePitch, direction, temper)
+            // TODO: delete other relationships to dest pitch if it has an inconsistent pitch already
+            dest.pitch = pitch
         } else {
             Log.d(DEBUG_TAG,
                     "${::updatePitchFromBase.name}: " +
-                            "Invalidating Temperament pitches unexpectedly because base pitch is null." +
+                            "Temperament pitches inconsistent because base pitch is null." +
                             " base=$base, dest=$dest, temper=$temper")
-            invalidate()
+            // called from .invalidate(), so cannot call that here
         }
     }
 
@@ -140,8 +158,12 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
     }
 
     private fun calculateTemperedPitch(basePitch: Hertz, direction: Direction, temper: Temper): Hertz {
-        // todo
-        return 0.0
+        val temperedPitch = if (direction == Direction.ASCENDING) {
+            basePitch * temper.temperedRatio
+        } else {
+            basePitch / temper.temperedRatio
+        }
+        return temperedPitch
     }
 
 
@@ -151,12 +173,26 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
     }
 
     private fun calculateAllPitches() {
-        pitches[referenceNote] = referencePitch
-        // todo
+        pitches.clear()
+        referenceNote.pitch = referencePitch
+        assignPitchesFrom(referenceNote)
     }
 
-    fun Note.pitch(): Hertz? = pitches[this]
+    private fun assignPitchesFrom(startNote: Note) {
+        for (dest in destinationsFrom(startNote)) {
+            if (!dest.note.hasPitch()) {
+                updatePitch(startNote, dest.note, dest.temper)
+                assignPitchesFrom(dest.note)
+            }
+        }
+    }
+
+    var Note.pitch: Hertz?
+        get() = pitches[this]
+        set(freq) { pitches[this] = freq }
+
     fun Note.hasPitch(): Boolean = pitches.containsKey(this)
+
 }
 
 ///**
