@@ -1,7 +1,5 @@
 package com.thefourthspecies.ttunertouch
 
-import android.util.Rational
-
 const val CHROM_SIZE = 12
 
 /**
@@ -117,12 +115,12 @@ enum class Accidental(val symbol: String, val parity: Int) {
  * @chromaticDifference: the distance in semitones
  * @ratio: note2 note frequency to note1 note frequency
  */
-enum class Interval(val diatonicDifference: Int, val chromaticDifference: Int, val ratio: Rational) {
-    MINOR_THIRD(2, 3, Rational(6, 5)),
-    MAJOR_THIRD(2, 4, Rational(5, 4)),
-    PERFECT_FOURTH(3, 5, Rational(4, 3)),
-    PERFECT_FIFTH(4, 7, Rational(3, 2)),
-    MINOR_SIXTH(5, 8, Rational(5, 3)),
-    MAJOR_SIXTH(5, 9, Rational(8, 5))
+enum class Interval(val diatonicDifference: Int, val chromaticDifference: Int, val ratio: Double) {
+    MINOR_THIRD(2, 3, 6.0/5.0),
+    MAJOR_THIRD(2, 4, 5.0/4.0),
+    PERFECT_FOURTH(3, 5, 4/3.0),
+    PERFECT_FIFTH(4, 7, 3.0/2.0),
+    MINOR_SIXTH(5, 8, 5.0/3.0),
+    MAJOR_SIXTH(5, 9, 8.0/5.0)
 }
 
