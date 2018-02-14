@@ -83,31 +83,30 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
         return result
     }
 
-    override fun toString(): String {
-        return "Note(letter=$letter, accidental=$accidental, numAccidental=$numAccidental)"
+    override fun toString() = "Note(letter=$letter, accidental=$accidental, numAccidental=$numAccidental)"
+
+    /**
+     * The names of the white base of each note
+     * The white offset is the number of white keys from A
+     * The offset is the number of semitones from A
+     */
+    enum class Letter(val diatonicOffset: Int, val chromaticOffset: Int) {
+        A(0, 0),
+        B(1, 2),
+        C(2, 3),
+        D(3, 5),
+        E(4, 7),
+        F(5, 8),
+        G(6,10)
+    }
+
+    enum class Accidental(val symbol: String, val parity: Int) {
+        FLAT("♭", -1),// U+266D
+        SHARP("♯", 1), // U+266F
+        NONE("", 0)
     }
 }
 
-/**
- * The names of the white base of each note
- * The white offset is the number of white keys from A
- * The offset is the number of semitones from A
- */
-enum class Letter(val diatonicOffset: Int, val chromaticOffset: Int) {
-    A(0, 0),
-    B(1, 2),
-    C(2, 3),
-    D(3, 5),
-    E(4, 7),
-    F(5, 8),
-    G(6,10)
-}
-
-enum class Accidental(val symbol: String, val parity: Int) {
-    FLAT("♭", -1),// U+266D
-    SHARP("♯", 1), // U+266F
-    NONE("", 0)
-}
 
 /**
  * All temperable intervals.

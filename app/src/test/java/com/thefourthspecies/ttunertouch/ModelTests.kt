@@ -11,18 +11,23 @@ class ModelTests {
 
     @Test
     fun intervalTests() {
-        val n = Note(Letter.A)
+        val n = Note(Note.Letter.A)
         val nn = n.relations()
         val actualNotes = HashSet<Note>(nn)
         val expectedNotes = mutableSetOf<Note>(
-                Note(Letter.C),
-                Note(Letter.C, Accidental.SHARP),
-                Note(Letter.D),
-                Note(Letter.E),
-                Note(Letter.F),
-                Note(Letter.F, Accidental.SHARP)
+                Note(Note.Letter.C),
+                Note(Note.Letter.C, Note.Accidental.SHARP),
+                Note(Note.Letter.D),
+                Note(Note.Letter.E),
+                Note(Note.Letter.F),
+                Note(Note.Letter.F, Note.Accidental.SHARP)
         )
         assertEquals(expectedNotes, actualNotes)
+    }
+
+    @Test
+    fun temperamentTests() {
+
     }
 
 }
