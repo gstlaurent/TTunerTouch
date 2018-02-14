@@ -1,7 +1,16 @@
 package com.thefourthspecies.ttunertouch
 
 import android.util.Log
+import java.text.Normalizer.normalize
 import kotlin.math.abs
+
+const val LOW_FREQ = 400.0
+const val HIGH_FREQ = 800.0
+const val HERTZ_TOLERANCE = 10e-10  // Between 400 and 800, experimenting shows me that Doubles seem
+                                    // to be to accurate to about 10e-12.
+                                    // Remove off two places for safety.
+
+typealias Hertz = Double
 
 enum class Comma(val ratio: Double, val symbol: String) {
     PYTHAGOREAN(531441.0/524288.0, "P"), // (12*P5)/(7*P8) = ((3/2)^12)/(2^7) = (3^12)/(2^19)
@@ -56,12 +65,11 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
     }
 }
 
-typealias Hertz = Double
 
 class Temperament(referencePitch: Hertz, referenceNote: Note) {
     var referencePitch: Hertz = referencePitch
         set(freq) {
-            field = freq
+            field = normalize(freq)
             invalidate()
         }
     var referenceNote: Note = referenceNote
@@ -138,14 +146,25 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
         if (basePitch != null) {
             val direction = intervalDirection(base, dest, temper.interval)
             val pitch = calculateTemperedPitch(basePitch, direction, temper)
-            // TODO: delete other relationships to dest pitch if it has an inconsistent pitch already
+            deleteConflictingRelationships(dest, pitch, base)
             dest.pitch = pitch
         } else {
             Log.d(DEBUG_TAG,
                     "${::updatePitchFromBase.name}: " +
                             "Temperament pitches inconsistent because base pitch is null." +
                             " base=$base, dest=$dest, temper=$temper")
-            // called from .invalidate(), so cannot call that here
+            // this function is called from .invalidate(), so cannot call that here
+        }
+    }
+
+    // Delete relationships not from goodNeighbour, if pitches don't match
+    private fun deleteConflictingRelationships(note: Note, goodPitch: Hertz, goodNeighbour: Note) {
+        val prevPitch = note.pitch
+        if (prevPitch != null && !prevPitch.equalsWithinTolerance(goodPitch)) {
+            val conflicts = destinationsFrom(note).filter { it.note != goodNeighbour }
+            for ((conflict, _) in conflicts) {
+                removeRelationship(note, conflict)
+            }
         }
     }
 
@@ -163,9 +182,16 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
         } else {
             basePitch / temper.temperedRatio
         }
-        return temperedPitch
+        return normalize(temperedPitch)
     }
 
+    private fun normalize(pitch: Hertz): Hertz {
+        return when {
+            pitch >= HIGH_FREQ -> normalize(pitch / 2.0)
+            pitch < LOW_FREQ -> normalize(pitch * 2.0)
+            else -> pitch
+        }
+    }
 
     private fun invalidate() {
         pitches.clear()
@@ -189,10 +215,13 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
 
     var Note.pitch: Hertz?
         get() = pitches[this]
-        set(freq) { pitches[this] = freq }
+        set(freq) { pitches[this] = if (freq == null) null else normalize(freq) }
 
     fun Note.hasPitch(): Boolean = pitches.containsKey(this)
 
+    fun Hertz.equalsWithinTolerance(other: Hertz): Boolean {
+        return abs(this - other) < HERTZ_TOLERANCE
+    }
 }
 
 ///**
