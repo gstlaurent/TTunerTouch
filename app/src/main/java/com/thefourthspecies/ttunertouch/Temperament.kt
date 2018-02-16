@@ -66,21 +66,26 @@ class Relationship(note1: Note, note2: Note, val temper: Temper) {
 }
 
 
-class Temperament(referencePitch: Hertz, referenceNote: Note) {
+// TODO: detect and replace equivalent chromatic notes (but not here, since controller)
+class Temperament(referenceNote: Note, referencePitch: Hertz) {
     private val relationshipGraph = HashMap<Note, MutableList<Destination>>()
     private val pitches = HashMap<Note, Hertz?>()
-
-    var referencePitch: Hertz = referencePitch
-        set(freq) {
-            field = normalize(freq)
-            invalidate()
-        }
 
     var referenceNote: Note = referenceNote
         set(note) {
             field = note
             invalidate()
         }
+
+    var referencePitch: Hertz = referencePitch
+        set(freq) {
+            field = freq
+            invalidate()
+        }
+
+    init {
+        invalidate()
+    }
 
     val relationships: List<Relationship>
         get() {
@@ -111,6 +116,8 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
         for ((dNote, _) in dests) {
             removeReferences(dNote, note)
         }
+
+        pitches.remove(note)
     }
 
     fun setRelationship(from: Note, to: Note, temper: Temper) {
@@ -127,13 +134,15 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
     }
 
     private fun removeReferences(fromNote: Note, toNote: Note) {
-        destinationsFrom(fromNote).removeAll {
-            it.note == toNote
+        if (relationshipGraph.containsKey(fromNote)) {
+            destinationsFrom(fromNote).removeAll {
+                it.note == toNote
+            }
         }
     }
 
     private fun destinationsFrom(note: Note): MutableList<Destination> {
-        return relationshipGraph[note] ?: mutableListOf<Destination>()
+        return relationshipGraph.getOrPut(note) { mutableListOf<Destination>() }
     }
 
     private fun updatePitch(from: Note, to: Note, temper: Temper) {
@@ -232,44 +241,3 @@ class Temperament(referencePitch: Hertz, referenceNote: Note) {
 
     private data class Destination(val note: Note, val temper: Temper)
 }
-
-///**
-// * Created by Graham on 2018-01-04.
-
-// This only works if Relationship doesn't use Temper in hashCode or Equals
-// */
-//class Temperament {
-//    private var _notes: HashSet<Note> = HashSet()
-//    val notes: List<Note>
-//        get() = _notes.toList()
-//
-//    private var _relationships: HashSet<Relationship> = HashSet()
-//    val relationships: List<Relationship>
-//        get() = _relationships.toList()
-//
-//
-//    fun addNote(note: Note) {
-//        _notes.add(note)
-//    }
-//
-//    fun removeNote(note: Note) {
-//        _notes.remove(note)
-//
-//        val iterate = _relationships.iterator()
-//        while (iterate.hasNext()) {
-//            val rel = iterate.next()
-//            if (rel.note1 == note || rel.note2 == note) {
-//                iterate.remove()
-//            }
-//        }
-//    }
-//
-//    fun setRelationship(relationship: Relationship) {
-//        _relationships.remove(relationship)
-//        _relationships.add(relationship)
-//    }
-//
-//    fun deleteRelationship(relationship: Relationship) {
-//        _relationships.remove(relationship)
-//    }
-//}
