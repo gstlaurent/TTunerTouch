@@ -25,22 +25,17 @@ data class Temper(val interval: Interval, val fraction: Double, val comma: Comma
         get() = interval.ratio * commaFractionRatio
 
     private val commaFractionRatio: Double
-        get() {
-            val magnitude = abs(comma.ratio * fraction)
-            return when {
-                fraction > 0.0 -> magnitude
-                fraction < 0.0 -> 1.0 / magnitude
-                else -> 1.0
-            }
-        }
+        get() = Math.pow(comma.ratio, fraction)
 }
 
-/**
- * Two Relationships are considered equal if they contain the same notes, whether they are note2 or note1.
- */
 class Relationship(note1: Note, note2: Note, val temper: Temper) {
     val note1 = minOf(note1, note2)
     val note2 = maxOf(note1, note2)
+
+    fun isBetween(noteA: Note, noteB: Note): Boolean {
+        return  (noteA == note1 && noteB == note2) ||
+                (noteB == note1 && noteA == note2)
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -125,7 +120,9 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         destinationsFrom(from).add(Destination(to, temper))
         destinationsFrom(to).add(Destination(from, temper))
 
-        updatePitch(from, to, temper)
+        invalidate(ensured= mutableSetOf(Relationship(from, to, temper)))
+
+//        updatePitch(from, to, temper)
     }
 
     fun removeRelationship(note1: Note, note2: Note) {
@@ -146,6 +143,8 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     }
 
     private fun updatePitch(from: Note, to: Note, temper: Temper) {
+        // todo add check that referenceNote is not being updated
+        // todo insert deleteConflictingRelationships in appropriate location
         when {
             from.hasPitch() && to.hasPitch() -> updatePitchFromBase(from, to, temper)
             from.hasPitch() -> updatePitchFromBase(from, to, temper)
@@ -157,16 +156,31 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     private fun updatePitchFromBase(base: Note, dest: Note, temper: Temper) {
         val basePitch = base.pitch
         if (basePitch != null) {
-            val direction = intervalDirection(base, dest, temper.interval)
-            val pitch = calculateTemperedPitch(basePitch, direction, temper)
-            deleteConflictingRelationships(dest, pitch, base)
-            dest.pitch = pitch
+            val direction = chromaticIntervalDirection(base, dest, temper.interval) // Allows chromatically-equivalent intervals
+//            val direction = intervalDirection(base, dest, temper.interval) // Does not allow chromatically-equivalent intervals (e.g., C# to Ab for a P5)
+            dest.pitch = calculateTemperedPitch(basePitch, direction, temper)
         } else {
             Log.d(DEBUG_TAG,
                     "${::updatePitchFromBase.name}: " +
                             "Temperament pitches inconsistent because base pitch is null." +
                             " base=$base, dest=$dest, temper=$temper")
             // this function is called from .invalidate(), so cannot call that here
+        }
+    }
+
+    private fun intervalDirection(from: Note, to: Note, interval: Interval): Direction {
+        return when {
+            from.atIntervalAbove(interval) == to -> Direction.ASCENDING
+            to.atIntervalAbove(interval) == from -> Direction.DESCENDING
+            else -> throw Exception("Interval does not apply for notes: from=$from, to=$to, interval=$interval")
+        }
+    }
+
+    private fun chromaticIntervalDirection(from: Note, to: Note, interval: Interval): Direction {
+        return when (interval.chromaticDifference) {
+            to chromaticMinus from -> Direction.ASCENDING
+            from chromaticMinus to -> Direction.DESCENDING
+            else -> throw Exception("Chromatic interval does not apply for notes: from=$from, to=$to, interval=$interval")
         }
     }
 
@@ -178,14 +192,6 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
             for ((conflict, _) in conflicts) {
                 removeRelationship(note, conflict)
             }
-        }
-    }
-
-    private fun intervalDirection(from: Note, to: Note, interval: Interval): Direction {
-        return when {
-            from.atIntervalAbove(interval) == to -> Direction.ASCENDING
-            to.atIntervalAbove(interval) == from -> Direction.DESCENDING
-            else -> throw Exception("Interval does not apply for notes: from=$from, to=$to, interval=$interval")
         }
     }
 
@@ -209,22 +215,27 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         }
     }
 
-    private fun invalidate() {
+    private fun invalidate(ensured: MutableSet<Relationship> = mutableSetOf()) {
         pitches.clear()
-        calculateAllPitches()
+        calculateAllPitches(ensured)
     }
 
-    private fun calculateAllPitches() {
+    private fun calculateAllPitches(ensured: MutableSet<Relationship> = mutableSetOf()) {
         pitches.clear()
         referenceNote.pitch = referencePitch
-        assignPitchesFrom(referenceNote)
+        assignPitchesFrom(referenceNote, ensured, mutableSetOf())
     }
 
-    private fun assignPitchesFrom(startNote: Note) {
-        for (dest in destinationsFrom(startNote)) {
-            if (!dest.note.hasPitch()) {
-                updatePitch(startNote, dest.note, dest.temper)
-                assignPitchesFrom(dest.note)
+    private fun assignPitchesFrom(fromNote: Note, ensured: MutableSet<Relationship>, done: MutableSet<Note>) {
+        done.add(fromNote)
+        for (dest in destinationsFrom(fromNote)) {
+            val override = ensured.find { it.isBetween(fromNote, dest.note)}
+            if (override != null) {
+                ensured.remove(override)
+            }
+            if (!done.contains(dest.note) || override != null) {
+                updatePitch(fromNote, dest.note, dest.temper)
+                assignPitchesFrom(dest.note, ensured, done)
             }
         }
     }
