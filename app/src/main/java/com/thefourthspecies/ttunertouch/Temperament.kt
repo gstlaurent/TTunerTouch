@@ -25,9 +25,12 @@ data class Temper(val interval: Interval, val fraction: Double, val comma: Comma
 
     private val commaFractionRatio: Double
         get() = Math.pow(comma.ratio, fraction)
+
+    override fun toString(): String = "Temper($interval, %.4f, $comma)".format(fraction)
 }
 
-class Relationship(val fromNote: Note, val toNote: Note, val temper: Temper) {
+// A Relationship is like an undirected Edge, so equivalent Relationships can have fromNote and toNote reversed
+data class Relationship(val fromNote: Note, val toNote: Note, val temper: Temper) {
 
     fun isBetween(note1: Note, note2: Note): Boolean {
         return  (note1 == fromNote && note2 == toNote) ||
@@ -38,28 +41,30 @@ class Relationship(val fromNote: Note, val toNote: Note, val temper: Temper) {
         if (this === other) return true
         if (other !is Relationship) return false
 
-        if (fromNote != other.fromNote) return false
-        if (toNote != other.toNote) return false
         if (temper != other.temper) return false
+        if (!isBetween(other.fromNote, other.toNote)) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = fromNote.hashCode()
-        result = 31 * result + toNote.hashCode()
-        result = 31 * result + temper.hashCode()
+        val note1 = minOf(fromNote, toNote)
+        val note2 = maxOf(fromNote, toNote)
+
+        var result = temper.hashCode()
+        result = 31 * result + note1.hashCode()
+        result = 31 * result + note2.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "Relationship(temper=$temper, note1=$fromNote, note2=$toNote)"
+        return "Relationship($fromNote -> $toNote, $temper)"
     }
 }
 
 
 class Temperament(referenceNote: Note, referencePitch: Hertz) {
-    private val relationshipGraph = HashMap<Note, MutableList<Destination>>()
+    private val relationshipGraph = HashMap<Note, MutableList<Relationship>>()
     private val pitches = HashMap<Note, Hertz?>()
 
     var referenceNote: Note = referenceNote
@@ -79,13 +84,7 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     }
 
     val relationships: List<Relationship>
-        get() {
-            val relSet = mutableSetOf<Relationship>()
-            val rels: List<Relationship> = relationshipGraph.flatMap {
-                (note, dests) -> dests.map { Relationship(note, it.note, it.temper)  }
-            }
-            return rels
-        }
+        get() = relationshipGraph.values.flatten().toSet().toList()
 
     val notes: List<Note>
         get() = relationshipGraph.keys.toList()
@@ -94,18 +93,18 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
 
     fun addNote(note: Note) {
         if (!relationshipGraph.containsKey(note)) {
-            relationshipGraph[note] = mutableListOf<Destination>()
+            relationshipGraph[note] = mutableListOf()
         }
     }
 
     fun removeNote(note: Note) {
         if (!relationshipGraph.contains(note)) return
 
-        val dests = destinationsFrom(note)
+        val rels = note.relationships
         relationshipGraph.remove(note)
 
-        for ((dNote, _) in dests) {
-            removeReferences(dNote, note)
+        for ((_, toNote, _) in rels) {
+            removeReferences(toNote, note)
         }
 
         pitches.remove(note)
@@ -114,37 +113,35 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     fun setRelationship(from: Note, to: Note, temper: Temper) {
         replaceRelationship(from, to, temper)
 
+        // To determine if there are any conflicting relationships that need to be removed
         updatePitch(from, to, temper)
 
+        // To find any notes that now have a path to the reference note, and assign them pitches
         invalidate()
-
     }
 
-    private fun replaceRelationship(from: Note, to: Note, temper: Temper) {
-        removeReferences(from, to)
-        removeReferences(to, from)
-
-        destinationsFrom(from).add(Destination(to, temper))
-        destinationsFrom(to).add(Destination(from, temper))
+    fun clearRelationship(note1: Note, note2: Note) {
+        removeRelationship(note1, note2)
+        invalidate()
     }
 
-    fun removeRelationship(note1: Note, note2: Note) {
+    private fun replaceRelationship(fromNote: Note, toNote: Note, temper: Temper) {
+        removeRelationship(fromNote, toNote)
+        fromNote.relationships.add(Relationship(fromNote, toNote, temper))
+        toNote.relationships.add(Relationship(toNote, fromNote, temper))
+    }
+
+    private fun removeRelationship(note1: Note, note2: Note) {
         removeReferences(note1, note2)
         removeReferences(note2, note1)
-
-        invalidate()
     }
 
     private fun removeReferences(fromNote: Note, toNote: Note) {
         if (relationshipGraph.containsKey(fromNote)) {
-            destinationsFrom(fromNote).removeAll {
-                it.note == toNote
+            fromNote.relationships.removeAll {
+                it.toNote == toNote
             }
         }
-    }
-
-    private fun destinationsFrom(note: Note): MutableList<Destination> {
-        return relationshipGraph.getOrPut(note) { mutableListOf<Destination>() }
     }
 
     private fun updatePitch(from: Note, to: Note, temper: Temper) {
@@ -170,7 +167,6 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
                     "${::updatePitchFromBase.name}: " +
                             "Temperament pitches inconsistent because base pitch is null." +
                             " base=$base, dest=$dest, temper=$temper")
-            // this function is called from .invalidate(), so cannot call that here
         }
     }
 
@@ -194,9 +190,9 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     private fun deleteConflictingRelationships(note: Note, goodPitch: Hertz, goodNeighbour: Note) {
         val prevPitch = note.pitch
         if (prevPitch != null && !prevPitch.equalsWithinTolerance(goodPitch)) {
-            val conflicts = destinationsFrom(note).filter { it.note != goodNeighbour }
-            for ((conflict, _) in conflicts) {
-                removeRelationship(note, conflict)
+            val conflicts = note.relationships.filter { it.toNote != goodNeighbour }
+            for ((_, conflictNote, _) in conflicts) {
+                removeRelationship(note, conflictNote)
             }
         }
     }
@@ -234,10 +230,7 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     }
 
     private fun assignPitchesFromNote(fromNote: Note, todo: MutableList<Relationship>, done: MutableSet<Relationship>) {
-        val relationshipsFromNote = destinationsFrom(fromNote).map {
-            (toNote, temper) -> Relationship(fromNote, toNote, temper)
-        }
-        todo.addAll(relationshipsFromNote)
+        todo.addAll(fromNote.relationships)
         assignPitchesFromRelationships(todo, done)
     }
 
@@ -247,11 +240,12 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         if (todo.isEmpty()) return
 
         val rel = todo.removeAt(0)
-        if (!done.contains(rel)) {
+        if (done.contains(rel)) {
+            assignPitchesFromRelationships(todo, done)
+        } else {
             done.add(rel)
 
             updatePitch(rel.fromNote, rel.toNote, rel.temper)
-            assignPitchesFromNote(rel.fromNote, todo, done)
             assignPitchesFromNote(rel.toNote, todo, done)
         }
     }
@@ -262,9 +256,11 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
 
     private fun Note.hasPitch(): Boolean = pitches.containsKey(this)
 
+    private val Note.relationships: MutableList<Relationship>
+        get() = relationshipGraph.getOrPut(this) { mutableListOf() }
+
     private fun Hertz.equalsWithinTolerance(other: Hertz): Boolean {
         return abs(this - other) < HERTZ_TOLERANCE
     }
 
-    private data class Destination(val note: Note, val temper: Temper)
 }
