@@ -1,14 +1,13 @@
 package com.thefourthspecies.ttunertouch
 
 import android.util.Log
-import java.text.Normalizer.normalize
+import java.util.*
+import kotlin.collections.HashSet
 import kotlin.math.abs
 
 const val LOW_FREQ = 400.0
 const val HIGH_FREQ = 800.0
-const val HERTZ_TOLERANCE = 10e-10  // Between 400 and 800, experimenting shows me that Doubles seem
-                                    // to be to accurate to about 10e-12.
-                                    // Remove off two places for safety.
+const val HERTZ_TOLERANCE = 10e-4 // If it is too precise, then there will be conflicts
 
 typealias Hertz = Double
 
@@ -28,40 +27,37 @@ data class Temper(val interval: Interval, val fraction: Double, val comma: Comma
         get() = Math.pow(comma.ratio, fraction)
 }
 
-class Relationship(note1: Note, note2: Note, val temper: Temper) {
-    val note1 = minOf(note1, note2)
-    val note2 = maxOf(note1, note2)
+class Relationship(val fromNote: Note, val toNote: Note, val temper: Temper) {
 
-    fun isBetween(noteA: Note, noteB: Note): Boolean {
-        return  (noteA == note1 && noteB == note2) ||
-                (noteB == note1 && noteA == note2)
+    fun isBetween(note1: Note, note2: Note): Boolean {
+        return  (note1 == fromNote && note2 == toNote) ||
+                (note2 == fromNote && note1 == toNote)
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Relationship) return false
 
-        if (note1 != other.note1) return false
-        if (note2 != other.note2) return false
+        if (fromNote != other.fromNote) return false
+        if (toNote != other.toNote) return false
         if (temper != other.temper) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = note1.hashCode()
-        result = 31 * result + note2.hashCode()
+        var result = fromNote.hashCode()
+        result = 31 * result + toNote.hashCode()
         result = 31 * result + temper.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "Relationship(temper=$temper, note1=$note1, note2=$note2)"
+        return "Relationship(temper=$temper, note1=$fromNote, note2=$toNote)"
     }
 }
 
 
-// TODO: detect and replace equivalent chromatic notes (but not here, since controller)
 class Temperament(referenceNote: Note, referencePitch: Hertz) {
     private val relationshipGraph = HashMap<Note, MutableList<Destination>>()
     private val pitches = HashMap<Note, Hertz?>()
@@ -116,18 +112,27 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     }
 
     fun setRelationship(from: Note, to: Note, temper: Temper) {
-        removeRelationship(from, to)
+        replaceRelationship(from, to, temper)
+
+        updatePitch(from, to, temper)
+
+        invalidate()
+
+    }
+
+    private fun replaceRelationship(from: Note, to: Note, temper: Temper) {
+        removeReferences(from, to)
+        removeReferences(to, from)
+
         destinationsFrom(from).add(Destination(to, temper))
         destinationsFrom(to).add(Destination(from, temper))
-
-        invalidate(ensured= mutableSetOf(Relationship(from, to, temper)))
-
-//        updatePitch(from, to, temper)
     }
 
     fun removeRelationship(note1: Note, note2: Note) {
         removeReferences(note1, note2)
         removeReferences(note2, note1)
+
+        invalidate()
     }
 
     private fun removeReferences(fromNote: Note, toNote: Note) {
@@ -143,8 +148,7 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     }
 
     private fun updatePitch(from: Note, to: Note, temper: Temper) {
-        // todo add check that referenceNote is not being updated
-        // todo insert deleteConflictingRelationships in appropriate location
+        if (to == referenceNote) return
         when {
             from.hasPitch() && to.hasPitch() -> updatePitchFromBase(from, to, temper)
             from.hasPitch() -> updatePitchFromBase(from, to, temper)
@@ -158,7 +162,9 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         if (basePitch != null) {
             val direction = chromaticIntervalDirection(base, dest, temper.interval) // Allows chromatically-equivalent intervals
 //            val direction = intervalDirection(base, dest, temper.interval) // Does not allow chromatically-equivalent intervals (e.g., C# to Ab for a P5)
-            dest.pitch = calculateTemperedPitch(basePitch, direction, temper)
+            val pitch = calculateTemperedPitch(basePitch, direction, temper)
+            deleteConflictingRelationships(dest, pitch, base)
+            dest.pitch = pitch
         } else {
             Log.d(DEBUG_TAG,
                     "${::updatePitchFromBase.name}: " +
@@ -215,28 +221,38 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         }
     }
 
-    private fun invalidate(ensured: MutableSet<Relationship> = mutableSetOf()) {
+    private fun invalidate() {
         pitches.clear()
-        calculateAllPitches(ensured)
+        calculateAllPitches()
     }
 
-    private fun calculateAllPitches(ensured: MutableSet<Relationship> = mutableSetOf()) {
+    private fun calculateAllPitches() {
         pitches.clear()
         referenceNote.pitch = referencePitch
-        assignPitchesFrom(referenceNote, ensured, mutableSetOf())
+        // using Linked List because we treat it as a queue
+        assignPitchesFromNote(referenceNote, LinkedList(), HashSet())
     }
 
-    private fun assignPitchesFrom(fromNote: Note, ensured: MutableSet<Relationship>, done: MutableSet<Note>) {
-        done.add(fromNote)
-        for (dest in destinationsFrom(fromNote)) {
-            val override = ensured.find { it.isBetween(fromNote, dest.note)}
-            if (override != null) {
-                ensured.remove(override)
-            }
-            if (!done.contains(dest.note) || override != null) {
-                updatePitch(fromNote, dest.note, dest.temper)
-                assignPitchesFrom(dest.note, ensured, done)
-            }
+    private fun assignPitchesFromNote(fromNote: Note, todo: MutableList<Relationship>, done: MutableSet<Relationship>) {
+        val relationshipsFromNote = destinationsFrom(fromNote).map {
+            (toNote, temper) -> Relationship(fromNote, toNote, temper)
+        }
+        todo.addAll(relationshipsFromNote)
+        assignPitchesFromRelationships(todo, done)
+    }
+
+    private fun assignPitchesFromRelationships(
+            todo: MutableList<Relationship>, done: MutableSet<Relationship>
+    ) {
+        if (todo.isEmpty()) return
+
+        val rel = todo.removeAt(0)
+        if (!done.contains(rel)) {
+            done.add(rel)
+
+            updatePitch(rel.fromNote, rel.toNote, rel.temper)
+            assignPitchesFromNote(rel.fromNote, todo, done)
+            assignPitchesFromNote(rel.toNote, todo, done)
         }
     }
 

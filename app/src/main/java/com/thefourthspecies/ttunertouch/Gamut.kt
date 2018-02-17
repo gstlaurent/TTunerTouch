@@ -13,6 +13,8 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
     val accidentalNumeric: Int = accidental.parity * numAccidental
     val chromaticOffset: Int = letter.chromaticOffset + accidentalNumeric
 
+    val name: String = letter.name + accidental.symbol.repeat(numAccidental)
+
     infix fun chromaticMinus(n: Note) = chromaticMod(chromaticOffset - n.chromaticOffset)
 
     /**
@@ -86,7 +88,7 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
         return result
     }
 
-    override fun toString() = "Note(letter=$letter, accidental=$accidental, numAccidental=$numAccidental)"
+    override fun toString() = "Note($name)"
 
     /**
      * The names of the white base of each note
