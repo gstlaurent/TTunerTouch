@@ -1,8 +1,12 @@
 package com.thefourthspecies.ttunertouch
 
+import org.hamcrest.CoreMatchers.containsString
 import org.junit.Test
 
 import org.junit.Assert.*
+import org.junit.Rule
+import org.junit.rules.ExpectedException
+import kotlin.reflect.KClass
 
 /**
  * Created by Graham on 2018-01-06.
@@ -39,8 +43,8 @@ class ModelTests {
     }
 
     @Test
-    fun temperamentTests() {
-        val pitchA = 415.0
+    fun equalTemperamentTests() {
+        val pitchA = 440.0
         val eqTemp = Temper(Interval.PERFECT_FIFTH, -1.0/12.0, Comma.PYTHAGOREAN)
         val t = Temperament(A, pitchA)
         t.setRelationship(Af, Ef, eqTemp)
@@ -70,11 +74,71 @@ class ModelTests {
         assertEquals(pitchA*Math.pow(2.0, 8/12.0), t.pitchOf(F)!!,   HERTZ_TOLERANCE)
         assertEquals(pitchA*Math.pow(2.0, 9/12.0), t.pitchOf(Fs)!!,  HERTZ_TOLERANCE)
         assertEquals(pitchA*Math.pow(2.0, 10/12.0), t.pitchOf(G)!!,  HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 11/12.0), t.pitchOf(Af)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 11/12.0) / 2.0, t.pitchOf(Af)!!, HERTZ_TOLERANCE)
 
         assertTrue(t.relationships.contains(Relationship(Ef, Af, eqTemp)))
         assertTrue(t.relationships.contains(Relationship(Cs, Af, eqTemp)))
     }
 
+    @Test
+    fun conflictsTemperamentTests() {
+        val pitchA = 415.0
+        val t = Temperament(A, pitchA)
 
+        t.setRelationship(A, Cs, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
+        assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+
+        val pure5th = Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE)
+        t.setRelationship(A, E, pure5th)
+        t.setRelationship(B, E, pure5th)
+        t.setRelationship(B, Fs, pure5th)
+        t.setRelationship(Fs, Cs, pure5th)
+
+        assertEquals(pitchA*Math.pow(Interval.PERFECT_FIFTH.ratio, 4.0) / 4.0, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+        assertEquals(
+                setOf(
+                        Relationship(A, E, pure5th),
+                        Relationship(E, B, pure5th),
+                        Relationship(B, Fs, pure5th),
+                        Relationship(Fs, Cs, pure5th)),
+                t.relationships.toSet())
+    }
+
+    @Test
+    fun noConflictsTemperamentTests() {
+        val pitchA = 415.0
+        val t = Temperament(A, pitchA)
+
+        val quarter5th = Temper(Interval.PERFECT_FIFTH, -1.0/4.0, Comma.SYNTONIC)
+        t.setRelationship(A, E, quarter5th)
+        t.setRelationship(B, E, quarter5th)
+        t.setRelationship(B, Fs, quarter5th)
+        t.setRelationship(Fs, Cs, quarter5th)
+
+        assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+
+        val pure3rd = Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE)
+        t.setRelationship(A, Cs, pure3rd)
+
+        assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+        assertEquals(
+                setOf(
+                        Relationship(A, Cs, pure3rd),
+                        Relationship(A, E, quarter5th),
+                        Relationship(E, B, quarter5th),
+                        Relationship(B, Fs, quarter5th),
+                        Relationship(Fs, Cs, quarter5th)
+                ),
+                t.relationships.toSet())
+    }
+
+    @Test
+    fun illegalIntervalExceptionTemperamentTests() {
+        val t = Temperament(A, 415.0)
+        try {
+            t.setRelationship(C, G, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
+        } catch (e: Exception) {
+           assertThat(e.message, containsString("Interval does not apply"))
+        }
+    }
 }

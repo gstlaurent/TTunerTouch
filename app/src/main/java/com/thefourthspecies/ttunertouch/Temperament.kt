@@ -19,14 +19,23 @@ enum class Comma(val ratio: Double, val symbol: String) {
 }
 
 // fraction: a positive or negative (or 0) value indicating the direction and amount of temper by the comma
+// Tempers that have tempered ratios that calculate out to the same value are essentially the same, and considered equal
 data class Temper(val interval: Interval, val fraction: Double, val comma: Comma) {
-    val temperedRatio: Double
-        get() = interval.ratio * commaFractionRatio
+    val temperedRatio: Double = interval.ratio * commaFractionRatio
 
     private val commaFractionRatio: Double
         get() = Math.pow(comma.ratio, fraction)
 
-    override fun toString(): String = "Temper($interval, %.4f, $comma)".format(fraction)
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Temper) return false
+
+        if (temperedRatio != other.temperedRatio) return false
+
+        return true
+    }
+
+    override fun toString(): String = "Temper($interval, %.4f, $comma): %.4f".format(fraction, temperedRatio)
 }
 
 // A Relationship is like an undirected Edge, so equivalent Relationships can have fromNote and toNote reversed
@@ -80,6 +89,9 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         }
 
     init {
+        assert(referencePitch > 0.0) {
+            "Reference Pitch must be greater than 0. Given $referencePitch"
+        }
         invalidate()
     }
 
@@ -182,7 +194,7 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         return when (interval.chromaticDifference) {
             to chromaticMinus from -> Direction.ASCENDING
             from chromaticMinus to -> Direction.DESCENDING
-            else -> throw Exception("Chromatic interval does not apply for notes: from=$from, to=$to, interval=$interval")
+            else -> throw Exception("Chromatic Interval does not apply for notes: from=$from, to=$to, interval=$interval")
         }
     }
 
