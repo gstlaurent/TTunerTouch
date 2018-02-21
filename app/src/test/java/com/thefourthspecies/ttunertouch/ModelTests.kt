@@ -46,7 +46,7 @@ class ModelTests {
     fun equalTemperamentTests() {
         val pitchA = 440.0
         val eqTemp = Temper(Interval.PERFECT_FIFTH, -1.0/12.0, Comma.PYTHAGOREAN)
-        val t = Temperament(A, pitchA)
+        val t = ChromaticTemperament(A, pitchA)
         t.setRelationship(Af, Ef, eqTemp)
         t.setRelationship(Ef, Bf, eqTemp)
         t.setRelationship(Bf, F,  eqTemp)
@@ -83,7 +83,7 @@ class ModelTests {
     @Test
     fun conflictsTemperamentTests() {
         val pitchA = 415.0
-        val t = Temperament(A, pitchA)
+        val t = ChromaticTemperament(A, pitchA)
 
         t.setRelationship(A, Cs, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
         assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
@@ -107,7 +107,7 @@ class ModelTests {
     @Test
     fun noConflictsTemperamentTests() {
         val pitchA = 415.0
-        val t = Temperament(A, pitchA)
+        val t = ChromaticTemperament(A, pitchA)
 
         val quarter5th = Temper(Interval.PERFECT_FIFTH, -1.0/4.0, Comma.SYNTONIC)
         t.setRelationship(A, E, quarter5th)
@@ -134,15 +134,24 @@ class ModelTests {
 
     @Test
     fun illegalIntervalExceptionTemperamentTests() {
-        val t = Temperament(A, 415.0)
+        val chromT = ChromaticTemperament(A, 415.0)
         // This is allowed, since they are chromatically equivalent
-        t.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE))
+        chromT.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE))
 
         try {
             // This is not allowed.
-            t.setRelationship(C, G, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
+            chromT.setRelationship(C, G, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
+            fail("Chromatic Temperament: expected exception")
         } catch (e: Exception) {
            assertThat(e.message, containsString("Interval does not apply"))
+        }
+
+        val pureT = PureTemperament(A, 415.0)
+        try {
+            pureT.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE))
+            fail("Pure Temperament: expected exception")
+        } catch (e: Exception) {
+            assertThat(e.message, containsString("Interval does not apply"))
         }
     }
 }

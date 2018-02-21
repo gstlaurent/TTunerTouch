@@ -71,18 +71,30 @@ data class Relationship(val fromNote: Note, val toNote: Note, val temper: Temper
     }
 }
 
+interface Temperament {
+    var referenceNote: Note
+    var referencePitch: Hertz
+    val relationships: List<Relationship>
+    val notes: List<Note>
 
-class Temperament(referenceNote: Note, referencePitch: Hertz) {
+    fun pitchOf(note: Note): Hertz?
+    fun addNote(note: Note)
+    fun removeNote(note: Note)
+    fun setRelationship(from: Note, to: Note, temper: Temper)
+    fun clearRelationship(note1: Note, note2: Note)
+}
+
+open class PureTemperament(referenceNote: Note, referencePitch: Hertz) : Temperament {
     private val relationshipGraph = HashMap<Note, MutableList<Relationship>>()
     private val pitches = HashMap<Note, Hertz?>()
 
-    var referenceNote: Note = referenceNote
+    override var referenceNote: Note = referenceNote
         set(note) {
             field = note
             invalidate()
         }
 
-    var referencePitch: Hertz = referencePitch
+    override var referencePitch: Hertz = referencePitch
         set(freq) {
             field = freq
             invalidate()
@@ -95,21 +107,21 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         invalidate()
     }
 
-    val relationships: List<Relationship>
+    override val relationships: List<Relationship>
         get() = relationshipGraph.values.flatten().toSet().toList()
 
-    val notes: List<Note>
+    override val notes: List<Note>
         get() = relationshipGraph.keys.toList()
 
-    fun pitchOf(note: Note): Hertz? = note.pitch
+    override fun pitchOf(note: Note): Hertz? = note.pitch
 
-    fun addNote(note: Note) {
+    override fun addNote(note: Note) {
         if (!relationshipGraph.containsKey(note)) {
             relationshipGraph[note] = mutableListOf()
         }
     }
 
-    fun removeNote(note: Note) {
+    override fun removeNote(note: Note) {
         if (!relationshipGraph.contains(note)) return
 
         val rels = note.relationships
@@ -122,7 +134,9 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         pitches.remove(note)
     }
 
-    fun setRelationship(from: Note, to: Note, temper: Temper) {
+    override fun setRelationship(from: Note, to: Note, temper: Temper) {
+        assertIntervalApplies(from, to, temper.interval)
+
         replaceRelationship(from, to, temper)
 
         // To determine if there are any conflicting relationships that need to be removed
@@ -132,7 +146,11 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         invalidate()
     }
 
-    fun clearRelationship(note1: Note, note2: Note) {
+    private fun assertIntervalApplies(from: Note, to: Note, interval: Interval) {
+        intervalDirectionNotNull(from, to, interval)
+    }
+
+    override fun clearRelationship(note1: Note, note2: Note) {
         removeRelationship(note1, note2)
         invalidate()
     }
@@ -169,8 +187,7 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     private fun updatePitchFromBase(base: Note, dest: Note, temper: Temper) {
         val basePitch = base.pitch
         if (basePitch != null) {
-            val direction = chromaticIntervalDirection(base, dest, temper.interval) // Allows chromatically-equivalent intervals
-//            val direction = intervalDirection(base, dest, temper.interval) // Does not allow chromatically-equivalent intervals (e.g., C# to Ab for a P5)
+            val direction = intervalDirectionNotNull(base, dest, temper.interval)
             val pitch = calculateTemperedPitch(basePitch, direction, temper)
             deleteConflictingRelationships(dest, pitch, base)
             dest.pitch = pitch
@@ -182,19 +199,15 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
         }
     }
 
-    private fun intervalDirection(from: Note, to: Note, interval: Interval): Direction {
+   private fun intervalDirectionNotNull(from: Note, to: Note, interval: Interval): Direction {
+       return intervalDirection(from, to , interval) ?: throw Exception("Interval does not apply for notes: from=$from, to=$to, interval=$interval")
+   }
+
+    protected open fun intervalDirection(from: Note, to: Note, interval: Interval): Direction? {
         return when {
             from.atIntervalAbove(interval) == to -> Direction.ASCENDING
             to.atIntervalAbove(interval) == from -> Direction.DESCENDING
-            else -> throw Exception("Interval does not apply for notes: from=$from, to=$to, interval=$interval")
-        }
-    }
-
-    private fun chromaticIntervalDirection(from: Note, to: Note, interval: Interval): Direction {
-        return when (interval.chromaticDifference) {
-            to chromaticMinus from -> Direction.ASCENDING
-            from chromaticMinus to -> Direction.DESCENDING
-            else -> throw Exception("Chromatic Interval does not apply for notes: from=$from, to=$to, interval=$interval")
+            else -> null
         }
     }
 
@@ -274,5 +287,15 @@ class Temperament(referenceNote: Note, referencePitch: Hertz) {
     private fun Hertz.equalsWithinTolerance(other: Hertz): Boolean {
         return abs(this - other) < HERTZ_TOLERANCE
     }
-
 }
+
+class ChromaticTemperament(referenceNote: Note, referencePitch: Hertz) : PureTemperament(referenceNote, referencePitch) {
+    override fun intervalDirection(from: Note, to: Note, interval: Interval): Direction? {
+        return when (interval.chromaticDifference) {
+            to chromaticMinus from -> Direction.ASCENDING
+            from chromaticMinus to -> Direction.DESCENDING
+            else -> null
+        }
+    }
+}
+
