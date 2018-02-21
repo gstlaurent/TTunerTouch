@@ -135,7 +135,11 @@ class ModelTests {
     @Test
     fun illegalIntervalExceptionTemperamentTests() {
         val t = Temperament(A, 415.0)
+        // This is allowed, since they are chromatically equivalent
+        t.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE))
+
         try {
+            // This is not allowed.
             t.setRelationship(C, G, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
         } catch (e: Exception) {
            assertThat(e.message, containsString("Interval does not apply"))
