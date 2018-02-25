@@ -15,7 +15,7 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
 
     val name: String = letter.name + accidental.symbol.repeat(numAccidental)
 
-    infix fun chromaticMinus(n: Note) = chromaticMod(chromaticOffset - n.chromaticOffset)
+    infix fun chromaticMinus(n: Note): Int = chromaticMod(chromaticOffset - n.chromaticOffset)
 
     /**
      * Returns a list of all Notes that are a temperable Interval away from the given Note

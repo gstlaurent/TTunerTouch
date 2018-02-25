@@ -1,11 +1,13 @@
 package com.thefourthspecies.ttunertouch
 
 import org.hamcrest.CoreMatchers.containsString
+import org.hamcrest.CoreMatchers.equalTo
 import org.junit.Test
 
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.rules.ExpectedException
+import org.junit.runners.JUnit4
 import kotlin.reflect.KClass
 
 /**
@@ -153,5 +155,13 @@ class ModelTests {
         } catch (e: Exception) {
             assertThat(e.message, containsString("Interval does not apply"))
         }
+    }
+
+    @Test
+    fun chromaticCalculationsTests() {
+        assertThat(B chromaticMinus A, equalTo(2))
+        assertThat(A chromaticMinus G, equalTo(2))
+        assertThat(G chromaticMinus A, equalTo(10))
+        assertThat(A chromaticMinus B, equalTo(10))
     }
 }

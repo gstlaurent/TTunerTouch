@@ -45,6 +45,12 @@ class NoteCircle @JvmOverloads constructor(
             onDataChange()
         }
 
+    fun update(controller: TemperamentController) {
+        mNotes = RingList<UINote>(controller.uiNotes)
+        mRelationships = controller.uiRelationships
+        onDataChange()
+    }
+
     // Custom attributes
     private var mLabelColor: Int by attributable(0)
     private var mLabelHeight: Float by attributable(0.0f)

@@ -12,12 +12,17 @@ import android.util.Log
 
 
 class MainActivity : AppCompatActivity() {
+    lateinit var controller: NewTemperamentController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         noteCircle.textView = textView
+
+
+        controller = NewTemperamentController(noteCircle)
+
 
 
 
