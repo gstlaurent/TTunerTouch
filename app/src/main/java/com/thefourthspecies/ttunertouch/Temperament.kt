@@ -22,6 +22,7 @@ enum class Comma(val ratio: Double, val symbol: String) {
 // Tempers that have tempered ratios that calculate out to the same value are essentially the same, and considered equal
 data class Temper(val interval: Interval, val fraction: Double, val comma: Comma) {
     val temperedRatio: Double = interval.ratio * commaFractionRatio
+    val label: String = "numerator/denominator${comma.symbol}"
 
     private val commaFractionRatio: Double
         get() = Math.pow(comma.ratio, fraction)

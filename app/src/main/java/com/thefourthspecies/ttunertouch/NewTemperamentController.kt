@@ -69,20 +69,24 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         return Math.log(ratio) / Math.log(2.0)
     }
 
-
     val Note.pitch: Hertz
         get() = temperament.pitchOf(this) ?: defaultPitch(this)
 
 
     fun Note.toUI(): NoteCircle.UINote {
+        val isHint = defaultNotes.contains(this)
+        if (isHint) {
+            assert(!temperament.notes.contains(this)) {
+                "Note exists in default form as well as in Temperament: $this"
+            }
+        }
         val position = calculatePosition(this.pitch)
-        return noteCircle.UINote(position, this.name)
+        return noteCircle.UINote(position, this.name, isHint)
     }
 
-
     fun Relationship.toUI(): NoteCircle.UIRelationship {
-        // TODO
-        return noteCircle.UIRelationship(defaultNotes[0].toUI(), defaultNotes[1].toUI(),"", false  )
+        val isArc = temper.comma != Comma.PURE
+        return noteCircle.UIRelationship(fromNote.toUI(), toNote.toUI(), temper.label, isArc)
     }
 
 }
