@@ -88,7 +88,6 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         val isArc = temper.comma != Comma.PURE
         return noteCircle.UIRelationship(fromNote.toUI(), toNote.toUI(), temper.label, isArc)
     }
-
 }
 
 

@@ -2,6 +2,7 @@ package com.thefourthspecies.ttunertouch
 
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.CoreMatchers.`is` as Is
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -9,6 +10,8 @@ import org.junit.Rule
 import org.junit.rules.ExpectedException
 import org.junit.runners.JUnit4
 import kotlin.reflect.KClass
+
+
 
 /**
  * Created by Graham on 2018-01-06.
@@ -47,7 +50,7 @@ class ModelTests {
     @Test
     fun equalTemperamentTests() {
         val pitchA = 440.0
-        val eqTemp = Temper(Interval.PERFECT_FIFTH, -1.0/12.0, Comma.PYTHAGOREAN)
+        val eqTemp = Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 12), Temper.Change.SMALLER)
         val t = ChromaticTemperament(A, pitchA)
         t.setRelationship(Af, Ef, eqTemp)
         t.setRelationship(Ef, Bf, eqTemp)
@@ -87,10 +90,10 @@ class ModelTests {
         val pitchA = 415.0
         val t = ChromaticTemperament(A, pitchA)
 
-        t.setRelationship(A, Cs, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
+        t.setRelationship(A, Cs, Temper(Interval.MAJOR_THIRD))
         assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
 
-        val pure5th = Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE)
+        val pure5th = Temper(Interval.PERFECT_FIFTH)
         t.setRelationship(A, E, pure5th)
         t.setRelationship(B, E, pure5th)
         t.setRelationship(B, Fs, pure5th)
@@ -111,7 +114,7 @@ class ModelTests {
         val pitchA = 415.0
         val t = ChromaticTemperament(A, pitchA)
 
-        val quarter5th = Temper(Interval.PERFECT_FIFTH, -1.0/4.0, Comma.SYNTONIC)
+        val quarter5th = Temper(Interval.PERFECT_FIFTH, Comma.SYNTONIC, Fraction(1, 4), Temper.Change.SMALLER)
         t.setRelationship(A, E, quarter5th)
         t.setRelationship(B, E, quarter5th)
         t.setRelationship(B, Fs, quarter5th)
@@ -119,7 +122,7 @@ class ModelTests {
 
         assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
 
-        val pure3rd = Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE)
+        val pure3rd = Temper(Interval.MAJOR_THIRD)
         t.setRelationship(A, Cs, pure3rd)
 
         assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
@@ -138,11 +141,11 @@ class ModelTests {
     fun illegalIntervalExceptionTemperamentTests() {
         val chromT = ChromaticTemperament(A, 415.0)
         // This is allowed, since they are chromatically equivalent
-        chromT.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE))
+        chromT.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH))
 
         try {
             // This is not allowed.
-            chromT.setRelationship(C, G, Temper(Interval.MAJOR_THIRD, 0.0, Comma.PURE))
+            chromT.setRelationship(C, G, Temper(Interval.MAJOR_THIRD))
             fail("Chromatic Temperament: expected exception")
         } catch (e: Exception) {
            assertThat(e.message, containsString("Interval does not apply"))
@@ -150,7 +153,7 @@ class ModelTests {
 
         val pureT = PureTemperament(A, 415.0)
         try {
-            pureT.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH, 0.0, Comma.PURE))
+            pureT.setRelationship(C, Note(Note.Letter.A, Note.Accidental.FLAT, 2), Temper(Interval.PERFECT_FIFTH))
             fail("Pure Temperament: expected exception")
         } catch (e: Exception) {
             assertThat(e.message, containsString("Interval does not apply"))
@@ -158,10 +161,25 @@ class ModelTests {
     }
 
     @Test
+    fun temperTests() {
+        // All Pure
+        assertThat(Temper(Interval.MAJOR_THIRD),
+                Is(Temper(Interval.MAJOR_THIRD, Comma.PURE, Fraction(0), Temper.Change.UNTEMPERED)))
+        assertThat(Temper(Interval.PERFECT_FIFTH),
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(0), Temper.Change.UNTEMPERED)))
+        assertThat(Temper(Interval.PERFECT_FIFTH),
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PURE, Fraction(1, 6), Temper.Change.UNTEMPERED)))
+        assertThat(Temper(Interval.PERFECT_FIFTH),
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PURE, Fraction(0, 6), Temper.Change.BIGGER)))
+        assertThat(Temper(Interval.PERFECT_FIFTH),
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.UNTEMPERED)))
+    }
+
+    @Test
     fun chromaticCalculationsTests() {
-        assertThat(B chromaticMinus A, equalTo(2))
-        assertThat(A chromaticMinus G, equalTo(2))
-        assertThat(G chromaticMinus A, equalTo(10))
-        assertThat(A chromaticMinus B, equalTo(10))
+        assertThat(B chromaticMinus A, Is(equalTo(2)))
+        assertThat(A chromaticMinus G, Is(equalTo(2)))
+        assertThat(G chromaticMinus A, Is( equalTo(10)))
+        assertThat(A chromaticMinus B, Is( equalTo(10)))
     }
 }

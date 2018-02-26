@@ -1,6 +1,7 @@
 package com.thefourthspecies.ttunertouch
 
 import android.util.Log
+import android.util.Rational
 import java.util.*
 import kotlin.collections.HashSet
 import kotlin.math.abs
@@ -18,14 +19,66 @@ enum class Comma(val ratio: Double, val symbol: String) {
     PURE(1.0, "=")
 }
 
+// Tried using Android.Rational, but it doesn't work properly
+class Fraction(val numerator: Int, val denominator: Int) {
+    constructor(size: Int) : this(size, 1)
+
+    init {
+        assert(numerator >= 0) {
+            "Numerator must be 0 or positive. Given $numerator"
+        }
+        assert(denominator > 0) {
+            "Denominator must be positive. Given $denominator"
+        }
+    }
+
+    val label = "${numerator}/${denominator}"
+    val isZero = numerator == 0
+
+    fun toDouble() = numerator.toDouble() / denominator.toDouble()
+    operator fun times(mult: Number): Double = toDouble() * mult.toDouble()
+    operator fun times(mult: Fraction): Double = toDouble() * mult.toDouble()
+
+    override fun toString(): String = "Fraction($label)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Fraction) return false
+
+        return toDouble() == other.toDouble()
+    }
+
+    override fun hashCode(): Int {
+        return toDouble().hashCode()
+    }
+}
+
 // fraction: a positive or negative (or 0) value indicating the direction and amount of temper by the comma
 // Tempers that have tempered ratios that calculate out to the same value are essentially the same, and considered equal
-data class Temper(val interval: Interval, val fraction: Double, val comma: Comma) {
+class Temper(val interval: Interval, comma: Comma, fraction: Fraction, change: Change) {
+    constructor(interval: Interval) : this(interval, Comma.PURE, Fraction(0), Change.UNTEMPERED)
+
+    val comma: Comma
+    val fraction: Fraction
+    val change: Change
+
+    init {
+        if (comma == Comma.PURE || fraction.isZero || change == Change.UNTEMPERED) {
+            this.comma = Comma.PURE
+            this.fraction = Fraction(0)
+            this.change = Change.UNTEMPERED
+        } else {
+            this.comma = comma
+            this.fraction = fraction
+            this.change = change
+        }
+    }
+
     val temperedRatio: Double = interval.ratio * commaFractionRatio
-    val label: String = "numerator/denominator${comma.symbol}"
+    val label: String = "${fraction.label}${comma.symbol}"
 
     private val commaFractionRatio: Double
-        get() = Math.pow(comma.ratio, fraction)
+        get() = Math.pow(comma.ratio, fraction * change.sign)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,7 +89,17 @@ data class Temper(val interval: Interval, val fraction: Double, val comma: Comma
         return true
     }
 
-    override fun toString(): String = "Temper($interval, %.4f, $comma): %.4f".format(fraction, temperedRatio)
+    override fun hashCode(): Int {
+        return temperedRatio.hashCode()
+    }
+
+    override fun toString(): String = "Temper(${change.name} ${interval.name} by $fraction ${comma.name} comma}"
+
+    enum class Change(val sign: Int, val symbol: String) {
+        BIGGER(+1, "+"),
+        SMALLER(-1, "-"),
+        UNTEMPERED(0, "")
+    }
 }
 
 // A Relationship is like an undirected Edge, so equivalent Relationships can have fromNote and toNote reversed

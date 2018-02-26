@@ -346,9 +346,10 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     inner class UINote(position: Double, val name: String, var isHint: Boolean = false) : Comparable<UINote> {
-        val position: Double = run {
-            var pos = position % 1
-            if (pos < 0) { pos + 1 } else pos
+        val position: Double
+        init {
+            val pos = position % 1
+            this.position = if (pos < 0) { pos + 1 } else pos
         }
 
         init {
