@@ -66,7 +66,7 @@ class ModelTests {
         t.setRelationship(Cs, Af, eqTemp)
 
         val notes = setOf<Note>(Af, Ef, Bf, F, C, G, D, A, E, B, Fs, Cs)
-        assertEquals(notes, t.notes.toSet())
+        assertEquals(notes, t.notes)
 
         assertEquals(pitchA*Math.pow(2.0, 0/12.0), t.pitchOf(A)!!,   HERTZ_TOLERANCE)
         assertEquals(pitchA*Math.pow(2.0, 1/12.0), t.pitchOf(Bf)!!,  HERTZ_TOLERANCE)
@@ -106,7 +106,7 @@ class ModelTests {
                         Relationship(E, B, pure5th),
                         Relationship(B, Fs, pure5th),
                         Relationship(Fs, Cs, pure5th)),
-                t.relationships.toSet())
+                t.relationships)
     }
 
     @Test
@@ -134,7 +134,7 @@ class ModelTests {
                         Relationship(B, Fs, quarter5th),
                         Relationship(Fs, Cs, quarter5th)
                 ),
-                t.relationships.toSet())
+                t.relationships)
     }
 
     @Test

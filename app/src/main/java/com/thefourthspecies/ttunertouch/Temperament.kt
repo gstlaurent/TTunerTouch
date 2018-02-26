@@ -138,8 +138,8 @@ data class Relationship(val fromNote: Note, val toNote: Note, val temper: Temper
 interface Temperament {
     var referenceNote: Note
     var referencePitch: Hertz
-    val relationships: List<Relationship>
-    val notes: List<Note>
+    val relationships: Set<Relationship>
+    val notes: Set<Note>
 
     fun pitchOf(note: Note): Hertz?
     fun addNote(note: Note)
@@ -171,11 +171,11 @@ open class PureTemperament(referenceNote: Note, referencePitch: Hertz) : Tempera
         invalidate()
     }
 
-    override val relationships: List<Relationship>
-        get() = relationshipGraph.values.flatten().toSet().toList()
+    override val relationships: Set<Relationship>
+        get() = relationshipGraph.values.flatten().toSet()
 
-    override val notes: List<Note>
-        get() = relationshipGraph.keys.toList()
+    override val notes: Set<Note>
+        get() = relationshipGraph.keys
 
     override fun pitchOf(note: Note): Hertz? = note.pitch
 

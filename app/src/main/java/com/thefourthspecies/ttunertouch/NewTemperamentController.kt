@@ -22,7 +22,10 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
     override val uiRelationships: Set<NoteCircle.UIRelationship>
         get() = temperament.relationships.map { it.toUI() }.toSet()
     override val uiNotes: Set<NoteCircle.UINote>
-        get() = temperament.notes.map { it.toUI() }.toSet()
+        get() {
+            val allNotes = temperament.notes + defaultNotes
+            return allNotes.map { it.toUI() }.toSet()
+        }
 
     var topNote = DEFAULT_TOP_NOTE
         set(note) {
@@ -31,7 +34,7 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         }
 
 
-    val defaultNotes = mutableListOf(
+    val defaultNotes: Set<Note> = mutableSetOf(
             Note(Note.Letter.A, Note.Accidental.FLAT),
             Note(Note.Letter.E, Note.Accidental.FLAT),
             Note(Note.Letter.B, Note.Accidental.FLAT),
@@ -44,7 +47,7 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
             Note(Note.Letter.B),
             Note(Note.Letter.F, Note.Accidental.SHARP),
             Note(Note.Letter.C, Note.Accidental.SHARP)
-        )
+        ) - DEFAULT_REFERENCE_NOTE
 
     init {
         update()
