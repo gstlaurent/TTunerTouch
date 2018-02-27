@@ -30,6 +30,7 @@ class NoteCircle @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    lateinit var controller: TemperamentController
     lateinit var textView: TextView
 
     var relationships: Set<UIRelationship>
@@ -207,6 +208,8 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     private fun onDataChange() {
+        Log.d(DEBUG_TAG, "onDataChange: notes=$notes; relationships=$relationships")
+
         mSectors = generateIntervalSectors()
         mNoteButtons = calculateNoteButtons()
     }
@@ -345,12 +348,14 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-    inner class UINote(position: Double, val name: String, var isHint: Boolean = false) : Comparable<UINote> {
+    inner class UINote(position: Double, val note: Note, var isHint: Boolean = false) : Comparable<UINote> {
         val position: Double
         init {
             val pos = position % 1
             this.position = if (pos < 0) { pos + 1 } else pos
         }
+
+        val name: String = note.name
 
         init {
             assert(0.0 <= this.position && this.position < 1.0) {
@@ -360,7 +365,7 @@ class NoteCircle @JvmOverloads constructor(
 
         fun draw(canvas: Canvas, paint: Paint = if (isHint) mHintLabelPaint else mLabelPaint) {
             val dot = Dot(position)
-            val label = Label(position, name)
+            val label = Label(position, note.name)
             val radial = Radial(position)
             radial.draw(canvas, mHintPaint)
             if (!isHint) {
@@ -379,12 +384,12 @@ class NoteCircle @JvmOverloads constructor(
             if (this === other) return true
             if (other !is UINote) return false
 
-            if (name != other.name) return false
+            if (note != other.note) return false
             return true
         }
 
         override fun hashCode(): Int {
-            return name.hashCode()
+            return note.hashCode()
         }
 
         override fun toString(): String {
@@ -400,19 +405,6 @@ class NoteCircle @JvmOverloads constructor(
             if (diffAngle < 0) {
                 diffAngle + 360f
             } else diffAngle
-        }
-
-        fun setDistanceFromCenter(radius: Float) {
-            start = Point(startNote.position, radius)
-            end = Point(endNote.position, radius)
-        }
-
-        fun draw(canvas: Canvas) {
-            canvas.drawLine(mCenterX, mCenterY, start.x, start.y, mHintPaint)
-            canvas.drawLine(mCenterX, mCenterY, end.x, end.y, mHintPaint)
-            if (isSelected) {
-                canvas.drawArc(mInnerCircleBounds, start.screenAngle, sweepAngle, isSelected, mSelectPaint)
-            }
         }
 
         operator fun contains(p: Point): Boolean {
@@ -438,19 +430,6 @@ class NoteCircle @JvmOverloads constructor(
             var result = startNote.hashCode()
             result = 31 * result + endNote.hashCode()
             return result
-        }
-    }
-
-    /**
-     * Edge: a radial line drawn only from the inner to outer radii
-     *
-     */
-    inner class Edge(val position: Double) {
-        val start = Point.polar(position, mInnerRadius)
-        val end = Point.polar(position, mOuterRadius)
-
-        fun draw(canvas: Canvas, paint: Paint) {
-            canvas.drawLine(start.x, start.y, end.x, end.y, paint)
         }
     }
 
@@ -545,7 +524,6 @@ class NoteCircle @JvmOverloads constructor(
     }
 
 
-
     // Adaptation of: https://discuss.kotlinlang.org/t/property-getters-setters-in-custom-view/2300/5
     inline fun <T> attributable (initialValue: T): ReadWriteProperty<Any?, T> {
         return Delegates.observable(initialValue) {
@@ -555,21 +533,13 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 
-    enum class Direction {
-        CLOCKWISE,
-        COUNTERCLOCKWISE
-    }
-
     /**
      * Extends [GestureDetector.SimpleOnGestureListener] to provide custom gesture
      * processing.
      */
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
-        var prevSelected: IntervalSector? = null
-        var firstSelected: IntervalSector? = null
-        var selectionDirection = Direction.CLOCKWISE // actual selectionDirection is reset during some onScrolls
 
-        // For some reason, onDown needs to be implemented for this to behave properly
+        // onDown needs to be implemented (and return true) for any other gestures to be detected
         override fun onDown(e: MotionEvent): Boolean {
             val p = Point.screen(e.x, e.y)
             Log.d(DEBUG_TAG, "OnDown. $p")
@@ -603,42 +573,28 @@ class NoteCircle @JvmOverloads constructor(
             if (upEvent == null) return false
 
             val touchPoint = Point.screen(upEvent.x, upEvent.y)
-            mTouchInput = mTouchInput?.next(touchPoint)
+            val touchInput = mTouchInput?.next(touchPoint)
+            if (touchInput != null) {
+                controller.input(touchInput)
+                mTouchInput = null
+            }
 
             invalidate()
             return true
         }
 
-        private fun calculateDirection(p: Point, distanceX: Float, distanceY: Float): NoteCircle.Direction {
-            val movedRight = distanceX > 0
-            val movedDown = distanceY > 0
-            return when {
-                0.0 <= p.position && p.position < 0.125 -> if (movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
-                0.125 <= p.position && p.position < 0.375 -> if (movedDown) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
-                0.375 <= p.position && p.position < 0.625 -> if (!movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
-                0.625 <= p.position && p.position < 0.875 -> if (!movedDown) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
-                0.875 <= p.position && p.position < 1.0 -> if (movedRight) Direction.CLOCKWISE else Direction.COUNTERCLOCKWISE
-                else -> throw Exception("Can't calculate direction. position: ${p.position}, distanceX: $distanceX, distanceY: $distanceY")
-            }
-        }
-
-        private fun findSectorAtPosition(p: Point): IntervalSector? {
-            val selected = mSectors.find { p in it }
-            return selected
-        }
-    }
-
-    private fun extendLine(startButton: NoteButton, p: Point) {
-        val endButton = mNoteButtons.find { p in it }
-        val endPoint = if (endButton == null || endButton == startButton) {
-            p
-        } else {
-            Point(endButton.note.position, mInnerRadius)
-        }
     }
 
     inner class LineInput(startPoint: Point, touchPoint: Point, sweepAngle: Float) :
             TouchInput(startPoint, touchPoint, sweepAngle) {
+
+        override val fromNote: Note?
+            get() = startNote?.note
+        override val toNote: Note?
+            get() = endNote?.note
+        override val isDirect: Boolean
+            get() = true
+
         constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
         val startNote: UINote? by lazy {
@@ -685,6 +641,14 @@ class NoteCircle @JvmOverloads constructor(
 
     inner class ArcInput(startPoint: Point, touchPoint: Point, sweepAngle: Float) :
             TouchInput(startPoint, touchPoint, sweepAngle) {
+
+        override val fromNote: Note?
+            get() = startNote?.note
+        override val toNote: Note?
+            get() = endNote?.note
+        override val isDirect: Boolean
+            get() = false
+
         constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
         val startNote: UINote? by lazy {
@@ -744,6 +708,9 @@ abstract class TouchInput(
     protected var touchPoint: Point,
     sweepAngle: Float
 ) {
+    abstract val fromNote: Note?
+    abstract val toNote: Note?
+    abstract val isDirect: Boolean
 
     protected var sweepAngle: Float = sweepAngle
         set(newAngle) { // So that you never exceed 720 degrees of having to scroll back
@@ -770,5 +737,8 @@ abstract class TouchInput(
 
     abstract fun draw(canvas: Canvas)
     abstract fun next(touchPoint: Point): TouchInput
+    override fun toString(): String {
+        return "TouchInput(fromNote=${fromNote?.name}, toNote=${toNote?.name}, isDirect=$isDirect)"
+    }
 }
 

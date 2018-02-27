@@ -199,6 +199,7 @@ open class PureTemperament(referenceNote: Note, referencePitch: Hertz) : Tempera
     }
 
     override fun setRelationship(from: Note, to: Note, temper: Temper) {
+        // TODO: change this, so it and its callees so that it accepts Relationship type
         assertIntervalApplies(from, to, temper.interval)
 
         replaceRelationship(from, to, temper)

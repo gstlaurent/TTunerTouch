@@ -24,6 +24,12 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
         return Interval.values().map { atIntervalAbove(it) }
     }
 
+    fun intervalTo(note: Note): Interval? {
+        return Interval.values().find {
+            this.atIntervalAbove(it) == note || note.atIntervalAbove(it) == this
+        }
+    }
+
 
     fun atIntervalAbove(interval: Interval): Note {
         val upperLetter = letterAtOffset(letter.diatonicOffset + interval.diatonicDifference)
@@ -114,7 +120,7 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
 
 
 /**
- * All temperable intervals.
+ * All temperable intervals, minus inversions.
  * @diatonicDifference: the distance in letter names (white keys)
  * @chromaticDifference: the distance in semitones
  * @ratio: note2 note frequency to note1 note frequency
@@ -122,9 +128,9 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
 enum class Interval(val diatonicDifference: Int, val chromaticDifference: Int, val ratio: Double) {
     MINOR_THIRD(2, 3, 6.0/5.0),
     MAJOR_THIRD(2, 4, 5.0/4.0),
-    PERFECT_FOURTH(3, 5, 4/3.0),
-    PERFECT_FIFTH(4, 7, 3.0/2.0),
-    MINOR_SIXTH(5, 8, 5.0/3.0),
-    MAJOR_SIXTH(5, 9, 8.0/5.0)
+//    PERFECT_FOURTH(3, 5, 4/3.0),
+    PERFECT_FIFTH(4, 7, 3.0/2.0)
+//    MINOR_SIXTH(5, 8, 5.0/3.0),
+//    MAJOR_SIXTH(5, 9, 8.0/5.0)
 }
 

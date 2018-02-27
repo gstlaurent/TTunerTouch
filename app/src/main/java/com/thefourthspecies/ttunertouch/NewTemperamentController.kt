@@ -1,16 +1,18 @@
 package com.thefourthspecies.ttunertouch
 
 import android.provider.SyncStateContract.Helpers.update
+import android.util.Log
 
 val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
 val DEFAULT_REFERENCE_NOTE = Note(Note.Letter.A)
 val DEFAULT_REFERENCE_PITCH = 415.0
 
-
 interface TemperamentController {
     val temperament: Temperament
     val uiNotes: Set<NoteCircle.UINote>
     val uiRelationships: Set<NoteCircle.UIRelationship>
+
+    fun input(input: TouchInput)
 }
 
 /**
@@ -34,7 +36,7 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         }
 
 
-    val defaultNotes: Set<Note> = mutableSetOf(
+    val defaultNotes: MutableSet<Note> = (setOf(
             Note(Note.Letter.A, Note.Accidental.FLAT),
             Note(Note.Letter.E, Note.Accidental.FLAT),
             Note(Note.Letter.B, Note.Accidental.FLAT),
@@ -47,11 +49,39 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
             Note(Note.Letter.B),
             Note(Note.Letter.F, Note.Accidental.SHARP),
             Note(Note.Letter.C, Note.Accidental.SHARP)
-        ) - DEFAULT_REFERENCE_NOTE
+        ) - DEFAULT_REFERENCE_NOTE).toMutableSet()
 
     init {
+        noteCircle.controller = this
         update()
     }
+
+    override fun input(input: TouchInput) {
+        Log.d(DEBUG_TAG, "Inputting touch event: $input")
+
+        val fromNote = input.fromNote
+        val toNote = input.toNote
+        if (fromNote != null && toNote != null) {
+            val interval = fromNote.intervalTo(toNote)
+            if (interval != null) {
+                val temper = if (input.isDirect)
+                    Temper(interval)
+                else
+                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.SMALLER)
+
+                // Do it:
+                Log.d(DEBUG_TAG, "Setting relationship: fromNote=$fromNote, toNote=$toNote, temper=$temper")
+
+                defaultNotes.remove(fromNote)
+                defaultNotes.remove(toNote)
+                temperament.setRelationship(fromNote, toNote, temper)
+                update()
+            }
+
+        }
+
+    }
+
 
     private fun update() {
         noteCircle.update(this)
@@ -84,13 +114,14 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
             }
         }
         val position = calculatePosition(this.pitch)
-        return noteCircle.UINote(position, this.name, isHint)
+        return noteCircle.UINote(position, this, isHint)
     }
 
     fun Relationship.toUI(): NoteCircle.UIRelationship {
         val isArc = temper.comma != Comma.PURE
         return noteCircle.UIRelationship(fromNote.toUI(), toNote.toUI(), temper.label, isArc)
     }
+
 }
 
 
