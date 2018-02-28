@@ -7,6 +7,15 @@ val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
 val DEFAULT_REFERENCE_NOTE = Note(Note.Letter.A)
 val DEFAULT_REFERENCE_PITCH = 415.0
 
+enum class Order {
+    FIFTHS,
+    PITCH;
+
+    companion object {
+        const val NUM_FIFTHS = 12
+    }
+}
+
 interface TemperamentController {
     val temperament: Temperament
     val uiNotes: Set<NoteCircle.UINote>
@@ -50,6 +59,8 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
             Note(Note.Letter.F, Note.Accidental.SHARP),
             Note(Note.Letter.C, Note.Accidental.SHARP)
         ) - DEFAULT_REFERENCE_NOTE).toMutableSet()
+
+    var order = Order.FIFTHS
 
     init {
         noteCircle.controller = this
@@ -102,6 +113,41 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         return Math.log(ratio) / Math.log(2.0)
     }
 
+    val Note.fifthIndex: Int
+        get() {
+            val semis: Int = this chromaticMinus topNote
+            return when (semis) {
+                0  -> 0
+                7  -> 1
+                2  -> 2
+                9  -> 3
+                4  -> 4
+                11 -> 5
+                6  -> 6
+                1  -> 7
+                8  -> 8
+                3  -> 9
+                10 -> 10
+                5  -> 11
+                else -> throw AssertionError(
+                        "fifthIndex is greater than 11: Note: $this, semis=$semis")
+            }
+
+
+        }
+
+    val Note.position: Double
+        get() = when (order) {
+            Order.FIFTHS -> {
+                val i = fifthIndex
+                i.toDouble() / Order.NUM_FIFTHS
+            }
+            Order.PITCH -> {
+                val ratio: Double = this.pitch / topNote.pitch
+                Math.log(ratio) / Math.log(2.0)
+            }
+        }
+
     val Note.pitch: Hertz
         get() = temperament.pitchOf(this) ?: defaultPitch(this)
 
@@ -113,7 +159,6 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
                 "Note exists in default form as well as in Temperament: $this"
             }
         }
-        val position = calculatePosition(this.pitch)
         return noteCircle.UINote(position, this, isHint)
     }
 
@@ -121,6 +166,10 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         val isArc = temper.comma != Comma.PURE
         return noteCircle.UIRelationship(fromNote.toUI(), toNote.toUI(), temper.label, isArc)
     }
+
+
+
+
 
 }
 
