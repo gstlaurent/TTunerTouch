@@ -597,23 +597,24 @@ class NoteCircle @JvmOverloads constructor(
 
         constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
-        val startNote: UINote? by lazy {
+        val startNote: UINote?
+        init {
             val startButton = mNoteButtons.find { startPoint in it}
-            startButton?.note
+            this.startNote = startButton?.note
         }
 
-
-        val endPoint: Point by lazy {
+        var endNote: UINote?
+        val endPoint: Point
+        init {
             val touchButton: NoteButton? = mNoteButtons.find { touchPoint in it}
-            if (touchButton == null || touchButton.note.position == startPoint.position) {
-                touchPoint
+            if (touchButton == null || touchButton.note == startNote) {
+                this.endNote = null
+                this.endPoint = touchPoint
             } else {
-                endNote = touchButton.note
-                Point(touchButton.note.position, mInnerRadius)
+                this.endNote = touchButton.note
+                this.endPoint = Point(touchButton.note.position, mInnerRadius)
             }
         }
-
-        var endNote: UINote? = null
 
         override fun next(touchPoint: Point): TouchInput {
             updateSweepAngle(touchPoint)

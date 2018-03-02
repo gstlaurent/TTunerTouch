@@ -16,6 +16,8 @@ enum class Order {
     }
 }
 
+
+
 interface TemperamentController {
     val temperament: Temperament
     val uiNotes: Set<NoteCircle.UINote>
@@ -107,12 +109,6 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
 
     }
 
-    private fun calculatePosition(notePitch: Hertz): Double {
-        // TODO TEST?
-        val ratio: Double = notePitch / topNote.pitch
-        return Math.log(ratio) / Math.log(2.0)
-    }
-
     val Note.fifthIndex: Int
         get() {
             val semis: Int = this chromaticMinus topNote
@@ -132,8 +128,6 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
                 else -> throw AssertionError(
                         "fifthIndex is greater than 11: Note: $this, semis=$semis")
             }
-
-
         }
 
     val Note.position: Double
