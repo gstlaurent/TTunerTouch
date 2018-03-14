@@ -1,6 +1,5 @@
 package com.thefourthspecies.ttunertouch
 
-import android.provider.SyncStateContract.Helpers.update
 import android.util.Log
 
 val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
@@ -16,6 +15,8 @@ enum class Order {
     }
 }
 
+data class TouchIn(val point: Point, val fromNote: Note, val toNote: Note?, val sweepAngle: Float)
+data class TouchOut(val input: TouchIn, val isArc: Boolean, val highlighted: List<Note>)
 
 
 interface TemperamentController {
@@ -23,7 +24,7 @@ interface TemperamentController {
     val uiNotes: Set<NoteCircle.UINote>
     val uiRelationships: Set<NoteCircle.UIRelationship>
 
-    fun input(input: TouchInput)
+    fun input(input: TouchIn)
 }
 
 /**
@@ -69,35 +70,42 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         update()
     }
 
-    override fun input(input: TouchInput) {
+    override fun input(input: TouchIn) {
         Log.d(DEBUG_TAG, "Inputting touch event: $input")
 
-        val fromNote = input.fromNote
-        val toNote = input.toNote
-        if (fromNote != null && toNote != null) {
-            val interval = fromNote.intervalTo(toNote)
-            if (interval != null) {
-                val temper = if (input.isDirect)
-                    Temper(interval)
-                else
-                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.SMALLER)
-
-                // Do it:
-                Log.d(DEBUG_TAG, "Setting relationship: fromNote=$fromNote, toNote=$toNote, temper=$temper")
-
-                defaultNotes.remove(fromNote)
-                defaultNotes.remove(toNote)
-                temperament.setRelationship(fromNote, toNote, temper)
-                update()
-            }
-
-        }
+        // TODO
+        val isArc = true
+        val highlighted = emptyList<Note>()
+        // TODO
+        val output = TouchOut(input, isArc, highlighted)
+        noteCircle.update(output)
+//
+//        val fromNote = input.fromNote
+//        val toNote = input.toNote
+//        if (fromNote != null && toNote != null) {
+//            val interval = fromNote.intervalTo(toNote)
+//            if (interval != null) {
+//                val temper = if (input.isDirect)
+//                    Temper(interval)
+//                else
+//                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.SMALLER)
+//
+//                // Do it:
+//                Log.d(DEBUG_TAG, "Setting relationship: fromNote=$fromNote, toNote=$toNote, temper=$temper")
+//
+//                defaultNotes.remove(fromNote)
+//                defaultNotes.remove(toNote)
+//                temperament.setRelationship(fromNote, toNote, temper)
+//                update()
+//            }
+//
+//        }
 
     }
 
 
     private fun update() {
-        noteCircle.update(this)
+        noteCircle.update(uiNotes.toList(), uiRelationships.toList())
     }
 
 
