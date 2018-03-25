@@ -20,7 +20,6 @@ const val SHARP = "♯" // U+266F
 //const val FLAT = "b" // U+266D
 //const val SHARP = "#" // U+266F
 
-
 typealias Position = Double
 
 /**
@@ -29,6 +28,8 @@ typealias Position = Double
 class NoteCircle @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
+
+//    private val mPoints = HashMap<UINote, Point>()
 
     lateinit var controller: TemperamentController
     lateinit var textView: TextView
@@ -41,12 +42,21 @@ class NoteCircle @JvmOverloads constructor(
         }
     var notes: Set<UINote>
         get() = mNotes.toSet()
-        set(noteSet) {
-            mNotes = RingList<UINote>(noteSet)
+        set(uinotes) {
+//            setNotePoints(uinotes)
+            mNotes = RingList<UINote>(uinotes)
             onDataChange()
         }
+//
+//    private fun setNotePoints(uinotes: Set<UINote>) {
+//        mPoints.clear()
+//        uinotes.forEach {
+//            Log.d(DEBUG_TAG, "Setting Note Point: note=${it.name}, point=${it.point}")
+//        }
+//    }
 
     fun update(controller: TemperamentController) {
+//        setNotePoints(controller.uiNotes)
         mNotes = RingList<UINote>(controller.uiNotes)
         mRelationships = controller.uiRelationships
         onDataChange()
@@ -91,7 +101,7 @@ class NoteCircle @JvmOverloads constructor(
     private var mSectors: List<IntervalSector> = listOf()
     private var mNoteButtons: List<NoteButton> = listOf()
     private var mRelationships: Set<UIRelationship> = setOf()
-    private var mNotes: RingList<UINote> = RingList<UINote>()
+    private var mNotes: RingList<UINote> = RingList<UINote>() // TODO, ensure RingList is read-only
 
     private var mDetector: GestureDetector
 
@@ -212,6 +222,12 @@ class NoteCircle @JvmOverloads constructor(
 
         mSectors = generateIntervalSectors()
         mNoteButtons = calculateNoteButtons()
+        for (note in mNotes) {
+            note.updatePoints()
+        }
+//        for (point in mPoints.values) {
+//            point.moveByDistance(mInnerRadius)
+//        }
     }
 
     private fun generateIntervalSectors(): List<IntervalSector> {
@@ -291,9 +307,8 @@ class NoteCircle @JvmOverloads constructor(
         super.onDraw(canvas)
 
         for (note in mNotes) {
-            val labelPaint = if (note.isHint) mHintLabelPaint else mLabelPaint
-            Label(note.position, note.name).draw(canvas, labelPaint)
-            Radial(note.position).draw(canvas, mHintPaint)
+            note.drawLabel(canvas)
+            note.drawRadial(canvas)
         }
 
 
@@ -301,8 +316,7 @@ class NoteCircle @JvmOverloads constructor(
             rel.draw(canvas)
         }
         for (note in mNotes) {
-            val dotPaint = if (note.isHint) mHintLabelPaint else mDotPaint
-            Dot(note.position).draw(canvas, dotPaint)
+            note.drawDot(canvas)
         }
 
         mTouchInput?.draw(canvas)
@@ -356,6 +370,8 @@ class NoteCircle @JvmOverloads constructor(
         }
 
         val name: String = note.name
+        val dotPoint: Point = Point(position, mInnerRadius)
+        val labelPoint: Point = Point(position, mLabelRadius)
 
         init {
             assert(0.0 <= this.position && this.position < 1.0) {
@@ -363,20 +379,34 @@ class NoteCircle @JvmOverloads constructor(
             }
         }
 
-        fun draw(canvas: Canvas, paint: Paint = if (isHint) mHintLabelPaint else mLabelPaint) {
-            val dot = Dot(position)
-            val label = Label(position, note.name)
-            val radial = Radial(position)
-            radial.draw(canvas, mHintPaint)
-            if (!isHint) {
-                dot.draw(canvas, mDotPaint)
-            }
-            label.draw(canvas, paint)
+        private fun defaultPaints(paint: Paint, hintPaint: Paint) = if (isHint) hintPaint else paint
 
+        fun drawLabel(canvas: Canvas, paint: Paint = defaultPaints(mLabelPaint, mHintLabelPaint)) {
+            drawTextCentered(canvas, paint, name, labelPoint.x, labelPoint.y)
+        }
+        fun drawDot(canvas: Canvas, paint: Paint = defaultPaints(mDotPaint, mHintLabelPaint)) {
+            canvas.drawCircle(dotPoint.x, dotPoint.y, mDotRadius, paint)
+        }
+        fun drawRadial(canvas: Canvas, paint: Paint = mHintPaint) {
+            canvas.drawLine(mCenterX, mCenterY, dotPoint.x, dotPoint.y, paint)
+        }
+        fun drawHighlighted(canvas: Canvas) {
+            drawRadial(canvas, mHighlightPaint)
+            drawDot(canvas, mHighlightPaint)
         }
 
+//        fun draw(canvas: Canvas) {
+//            drawRadial(canvas)
+//            drawDot(canvas)
+//            drawLabel(canvas)
+//        }
+
         override fun compareTo(other: UINote): Int {
-            return position.compareTo(other.position)
+            var comp = position.compareTo(other.position)
+            if (comp == 0) {
+                comp = note.compareTo(other.note)
+            }
+            return comp
         }
 
 
@@ -394,6 +424,11 @@ class NoteCircle @JvmOverloads constructor(
 
         override fun toString(): String {
             return "Note(position=$position, name='$name', isHint=$isHint)"
+        }
+
+        fun updatePoints() {
+            dotPoint.moveByDistance(mInnerRadius)
+            labelPoint.moveByDistance(mLabelRadius)
         }
     }
 
@@ -430,40 +465,6 @@ class NoteCircle @JvmOverloads constructor(
             var result = startNote.hashCode()
             result = 31 * result + endNote.hashCode()
             return result
-        }
-    }
-
-    /**
-     * Radial: a radial line drawn only to the inner radius
-     *
-     */
-    inner class Radial(val position: Double) {
-        val end = Point(position, mInnerRadius)
-
-        fun draw(canvas: Canvas, paint: Paint) {
-            canvas.drawLine(mCenterX, mCenterY, end.x, end.y, paint)
-        }
-    }
-
-    /**
-     * A circle drawn on the inner border
-     */
-    inner class Dot(val position: Double) {
-        val point = Point(position, mInnerRadius)
-
-        fun draw(canvas: Canvas, paint: Paint) {
-            canvas.drawCircle(point.x, point.y, mDotRadius, paint)
-        }
-    }
-
-    /**
-     * The note name between the inner and outer borders
-     */
-    inner class Label (val position: Double, val text: String) {
-        val point = Point(position, mLabelRadius)
-
-        fun draw(canvas: Canvas, paint: Paint) {
-            drawTextCentered(canvas, paint, text, point.x, point.y)
         }
     }
 
@@ -628,15 +629,8 @@ class NoteCircle @JvmOverloads constructor(
 
         override fun draw(canvas: Canvas) {
             canvas.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y, mDirectPaint)
-            startNote?.let {
-                Dot(it.position).draw(canvas, mHighlightPaint)
-                Radial(it.position).draw(canvas, mHighlightPaint)
-            }
-
-            endNote?.let {
-                Dot(it.position).draw(canvas, mHighlightPaint)
-                Radial(it.position).draw(canvas, mHighlightPaint)
-            }
+            startNote?.drawHighlighted(canvas)
+            endNote?.drawHighlighted(canvas)
         }
     }
 
@@ -678,17 +672,14 @@ class NoteCircle @JvmOverloads constructor(
 
             if (startNote != endNote) {
                 for (note in mNotes.iterateUntilExcluding(startNote, endNote, direction)) {
-                    Radial(note.position).draw(canvas, mHighlightPaint)
-                    Dot(note.position).draw(canvas, mDotPaint)
+                    note.drawRadial(canvas, mHighlightPaint)
+                    note.drawDot(canvas, mDotPaint)
                 }
             }
-
-            Radial(startNote.position).draw(canvas, mHighlightPaint)
-            Dot(startNote.position).draw(canvas, mHighlightPaint)
+            startNote.drawHighlighted(canvas)
 
             if (abs(sweepAngle) < 360f) {
-                Radial(endNote.position).draw(canvas, mHighlightPaint)
-                Dot(endNote.position).draw(canvas, mHighlightPaint)
+                endNote.drawHighlighted(canvas)
             }
         }
 
