@@ -16,7 +16,9 @@ enum class Order {
 }
 
 data class TouchIn(val point: Point, val fromNote: Note, val toNote: Note?, val sweepAngle: Float)
-data class TouchOut(val input: TouchIn, val isArc: Boolean, val highlighted: List<Note>)
+data class TouchOut(val lastInput: TouchIn, val isArc: Boolean, val highlighted: List<Note>)
+
+
 
 
 interface TemperamentController {
@@ -105,7 +107,8 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
 
 
     private fun update() {
-        noteCircle.update(uiNotes.toList(), uiRelationships.toList())
+//        noteCircle.update(uiNotes.toList(), uiRelationships.toList())
+        noteCircle.update(this)
     }
 
 
