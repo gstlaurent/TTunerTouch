@@ -293,6 +293,7 @@ class NoteCircle @JvmOverloads constructor(
             |Polar: (${p.position}, ${p.distance})
             |ScreenAngle: ${p.screenAngle}
             |SweepAngle: $mSweepAngle
+            |TouchInput: $mTouchInput
             """.trimMargin()
 
         // Let the GestureDetector interpret this event
@@ -546,16 +547,18 @@ class NoteCircle @JvmOverloads constructor(
             Log.d(DEBUG_TAG, "OnDown. $p")
             val button = mNoteButtons.find { p in it }
 
-            if (button != null) {
-                Log.d(DEBUG_TAG, "NoteButton pressed: ${button.note.name}")
-                val startPoint = Point(button.note.position, mInnerRadius)
-                mTouchInput = LineInput(startPoint)
-            }
+            if (button == null) return false
+
+            Log.d(DEBUG_TAG, "NoteButton pressed: ${button.note.name}")
+            val startPoint = Point(button.note.position, mInnerRadius)
+            mTouchInput = LineInput(startPoint)
 
             mStartButton = button
             mSweepAngle = 0f
             mTouchPoint = null
             mIsScrollDone = false
+
+            invalidate()
             return true
         }
 
@@ -729,8 +732,11 @@ abstract class TouchInput(
 
     abstract fun draw(canvas: Canvas)
     abstract fun next(touchPoint: Point): TouchInput
-    override fun toString(): String {
-        return "TouchInput(fromNote=${fromNote?.name}, toNote=${toNote?.name}, isDirect=$isDirect)"
-    }
+
+    override fun toString() = "${javaClass.simpleName}[from: ${fromNote?.name}, to: ${toNote?.name}, sweepAngle: %.1f]".format(sweepAngle)
+
 }
+
+
+
 
