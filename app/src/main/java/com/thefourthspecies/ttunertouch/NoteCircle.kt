@@ -2,6 +2,7 @@ package com.thefourthspecies.ttunertouch
 
 import android.content.Context
 import android.graphics.*
+import android.support.v4.view.MotionEventCompat
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -103,15 +104,8 @@ class NoteCircle @JvmOverloads constructor(
     private var mRelationships: Set<UIRelationship> = setOf()
     private var mNotes: RingList<UINote> = RingList<UINote>() // TODO, ensure RingList is read-only
 
+    // UX
     private var mDetector: GestureDetector
-
-    // TODO: remove
-
-    // Drawings
-    private var mStartButton: NoteButton? = null
-    private var mTouchPoint: Point? = null
-    private var mIsScrollDone: Boolean = false
-    private var mSweepAngle: Float = 0f
     private var mTouchInput: TouchInput? = null
 
     init {
@@ -292,15 +286,32 @@ class NoteCircle @JvmOverloads constructor(
             |Screen: (${p.x}, ${p.y})
             |Polar: (${p.position}, ${p.distance})
             |ScreenAngle: ${p.screenAngle}
-            |SweepAngle: $mSweepAngle
             |TouchInput: $mTouchInput
             """.trimMargin()
 
         // Let the GestureDetector interpret this event
-        val result: Boolean = mDetector.onTouchEvent(event);
-        if (!result) {
-            return super.onTouchEvent(event)
+        val isGesture: Boolean = mDetector.onTouchEvent(event);
+        if (isGesture) {
+            return true
         }
+        return onNonGestureTouchEvent(event)
+    }
+
+    private fun onNonGestureTouchEvent(event: MotionEvent): Boolean {
+        return when (event.actionMasked) {
+            MotionEvent.ACTION_UP -> handleUpAction(event)
+            else -> super.onTouchEvent(event)
+
+        }
+    }
+
+    private fun handleUpAction(upEvent: MotionEvent): Boolean {
+        mTouchInput?.let {
+            mTouchInput = null
+            controller.input(it)
+        }
+
+        invalidate()
         return true
     }
 
@@ -311,7 +322,6 @@ class NoteCircle @JvmOverloads constructor(
             note.drawLabel(canvas)
             note.drawRadial(canvas)
         }
-
 
         for (rel in mRelationships) {
             rel.draw(canvas)
@@ -553,11 +563,6 @@ class NoteCircle @JvmOverloads constructor(
             val startPoint = Point(button.note.position, mInnerRadius)
             mTouchInput = LineInput(startPoint)
 
-            mStartButton = button
-            mSweepAngle = 0f
-            mTouchPoint = null
-            mIsScrollDone = false
-
             invalidate()
             return true
         }
@@ -569,23 +574,24 @@ class NoteCircle @JvmOverloads constructor(
 
             invalidate()
             return true
-     }
-
-
-
-        override fun onFling(downEvent: MotionEvent?, upEvent: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
-            if (upEvent == null) return false
-
-            val touchPoint = Point.screen(upEvent.x, upEvent.y)
-            val touchInput = mTouchInput?.next(touchPoint)
-            if (touchInput != null) {
-                controller.input(touchInput)
-                mTouchInput = null
-            }
-
-            invalidate()
-            return true
         }
+
+
+
+//        override fun onFling(downEvent: MotionEvent?, upEvent: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
+//            if (upEvent == null) return false
+//
+//            val touchPoint = Point.screen(upEvent.x, upEvent.y)
+//            Log.d(DEBUG_TAG, "onFling: touchPoint=$touchPoint")
+//            val touchInput = mTouchInput?.next(touchPoint)
+//            if (touchInput != null) {
+//                mTouchInput = null
+//                controller.input(touchInput)
+//            }
+//
+//            invalidate()
+//            return true
+//        }
 
     }
 
@@ -717,7 +723,7 @@ abstract class TouchInput(
             field = offset + (newAngle % 360f)
         }
 
-    protected val direction: Direction
+    val direction: Direction
         get() = if (sweepAngle > 0) Direction.ASCENDING else Direction.DESCENDING
 
     protected fun updateSweepAngle(nextTouchPoint: Point) {
