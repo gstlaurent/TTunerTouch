@@ -650,33 +650,47 @@ class NoteCircle @JvmOverloads constructor(
         }
 
         private fun isFullCircle(): Boolean {
-            val pos = startNote?.position
-            val edgePos = startNote?.button?.sector?.let {
-                if (direction == Direction.ASCENDING) {
-                    it.startPosition
-                } else {
-                    it.endPosition
-                }
+            return if (direction == Direction.ASCENDING) {
+                isFullCircleAscending()
+            } else {
+                isFullCircleDescending()
             }
+        }
+
+        private fun isFullCircleDescending(): Boolean {
+             assert(direction == Direction.DESCENDING) {
+                "isFullCircleDescending called when direction == ${direction.name}"
+            }
+
+            val pos = startNote?.position
+            val edgePos = startNote?.button?.sector?.endPosition
+
             if (pos == null || edgePos == null) return false
 
             val diff = pos - edgePos
-            val boundedDiff = if (direction == Direction.ASCENDING) {
-                normalizePosition(diff)
-            } else {
-                -normalizePosition(-diff)
+            val boundedDiff = normalizePosition(-diff)
+            val limit = 1.0 - boundedDiff
+            val limitDegrees = limit * -360f
+
+            return sweepAngle < limitDegrees
+        }
+
+        private fun isFullCircleAscending(): Boolean {
+            assert(direction == Direction.ASCENDING) {
+                "isFullCircleAscending called when direction == ${direction.name}"
             }
 
-            val full = if (direction == Direction.ASCENDING) 1 else -1
-            val limit = full - diff
+            val pos = startNote?.position
+            val edgePos = startNote?.button?.sector?.startPosition
 
+            if (pos == null || edgePos == null) return false
+
+            val diff = pos - edgePos
+            val boundedDiff = normalizePosition(diff)
+            val limit = 1.0 - boundedDiff
             val limitDegrees = limit * 360f
 
-            return if (direction == Direction.ASCENDING) {
-                sweepAngle > limitDegrees
-            } else {
-                sweepAngle < limitDegrees
-            }
+            return sweepAngle > limitDegrees
         }
 
         override fun draw(canvas: Canvas) {
