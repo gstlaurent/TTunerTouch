@@ -262,7 +262,7 @@ class NoteCircle @JvmOverloads constructor(
             var nbNext: NoteButton = noteButtons[0]
             var nextEdgePosition = average(1.0, nbCurr.note.position)
             nbCurr.sector.endPosition = nextEdgePosition
-            nbNext.sector.startPosition = nextEdgePosition - 1 // Start position must be smaller than endNote position to ensure button boundaries for ring's minor segment
+            nbNext.sector.startPosition = nextEdgePosition
 
             for (i in 0..noteButtons.size - 2) {
                 nbCurr = noteButtons[i]
@@ -513,7 +513,28 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     // Variable since currently the notebutton calculate function must set them
-    data class Sector(var startPosition: Double = 0.0, var endPosition: Double = 0.0) {
+    class Sector(startPos: Double = 0.0, endPos: Double = 0.0) {
+        var startPosition: Position = 0.0
+            set(pos) {
+                assert(pos >= 0.0) {
+                    "Position must not be negative. Given startPosition=$pos"
+                }
+                field = pos
+            }
+
+        var endPosition: Position = 0.0
+            set(pos) {
+                assert(pos >= 0.0) {
+                    "Position must not be negative. Given endPosition=$pos"
+                }
+                field = pos
+            }
+
+        init {
+            startPosition = startPos
+            endPosition = endPos
+        }
+
         operator fun contains(p: Point): Boolean {
             val result = if (startPosition <= endPosition) {
                 startPosition < p.position && p.position < endPosition
@@ -575,24 +596,6 @@ class NoteCircle @JvmOverloads constructor(
             invalidate()
             return true
         }
-
-
-
-//        override fun onFling(downEvent: MotionEvent?, upEvent: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
-//            if (upEvent == null) return false
-//
-//            val touchPoint = Point.screen(upEvent.x, upEvent.y)
-//            Log.d(DEBUG_TAG, "onFling: touchPoint=$touchPoint")
-//            val touchInput = mTouchInput?.next(touchPoint)
-//            if (touchInput != null) {
-//                mTouchInput = null
-//                controller.input(touchInput)
-//            }
-//
-//            invalidate()
-//            return true
-//        }
-
     }
 
     inner class LineInput(startPoint: Point, touchPoint: Point, sweepAngle: Float) :
