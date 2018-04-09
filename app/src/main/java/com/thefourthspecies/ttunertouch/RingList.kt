@@ -97,6 +97,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
         )
     }
 
+    // Iterates from start until reaching end. If start and end are the same, will visit every element
     private fun iterateUntilExcluding(map: MutableMap<T, Pointers<T>>, start: T?, end: T?, direction: Direction): Iterable<T> {
         if (map.isEmpty() || start == null || end == null) {
             return emptyList<T>()
@@ -109,12 +110,20 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
         }
     }
 
+    // Iterates from start, visiting all elements, in given direction
     fun iterateFrom(start: T, direction: Direction): Iterable<T> {
         return iterateUntilExcluding(mItems, start, start, direction)
     }
 
+    // Iterates from start to element prior to end, visiting all elements in given direction.
+    // If start and end are the same, then visits no elements.
     fun iterateUntilExcluding(start: T, end: T, direction: Direction): Iterable<T> {
-        return iterateUntilExcluding(mItems, start, end, direction)
+        return if (start == end) {
+            emptyList<T>()
+        } else {
+            iterateUntilExcluding(mItems, start, end, direction)
+        }
+
     }
 
     override fun iterator(): Iterator<T> {

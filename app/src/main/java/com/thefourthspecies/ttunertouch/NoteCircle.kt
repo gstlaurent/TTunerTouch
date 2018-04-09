@@ -110,9 +110,9 @@ class NoteCircle @JvmOverloads constructor(
 
     init {
         val a = context.theme.obtainStyledAttributes(
-            attrs,
-            R.styleable.NoteCircle,
-            0, 0)
+                attrs,
+                R.styleable.NoteCircle,
+                0, 0)
         try {
             mLabelColor = a.getColor(R.styleable.NoteCircle_labelColor, -0x1000000)
             mLabelHeight = a.getDimension(R.styleable.NoteCircle_labelHeight, 0.0f)
@@ -134,7 +134,6 @@ class NoteCircle @JvmOverloads constructor(
 
         initPaint()
     }
-
 
 
     fun initPaint() {
@@ -186,12 +185,12 @@ class NoteCircle @JvmOverloads constructor(
 
         // Calculate inner and outer circle bounds for the ring
         val outerDiameter = Math.min(ww, hh)
-        mOuterRadius = outerDiameter/2f
+        mOuterRadius = outerDiameter / 2f
         mInnerRadius = mOuterRadius * mInnerRadiusRatio
         mDotRadius = mInnerRadius * mDotRadiusRatio
-        mButtonRadius = mInnerRadius/2f
+        mButtonRadius = mInnerRadius / 2f
 
-        mLabelRadius = (3*mOuterRadius + mInnerRadius)/4f
+        mLabelRadius = (3 * mOuterRadius + mInnerRadius) / 4f
         mCenterX = paddingLeft.toFloat() + mOuterRadius
         mCenterY = paddingTop.toFloat() + mOuterRadius
 
@@ -199,8 +198,8 @@ class NoteCircle @JvmOverloads constructor(
         mInnerCircleBounds = RectF(
                 0.0f,
                 0.0f,
-                mInnerRadius*2,
-                mInnerRadius*2)
+                mInnerRadius * 2,
+                mInnerRadius * 2)
         mInnerCircleBounds.offsetTo(paddingLeft.toFloat() + radiusDiff,
                 paddingTop.toFloat() + radiusDiff)
 
@@ -266,7 +265,7 @@ class NoteCircle @JvmOverloads constructor(
 
             for (i in 0..noteButtons.size - 2) {
                 nbCurr = noteButtons[i]
-                nbNext = noteButtons[i+1]
+                nbNext = noteButtons[i + 1]
                 nextEdgePosition = average(nbCurr.note.position, nbNext.note.position)
                 nbCurr.sector.endPosition = nextEdgePosition
                 nbNext.sector.startPosition = nextEdgePosition
@@ -276,7 +275,7 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     private fun average(start: Double, end: Double): Double {
-        return (start + end)/2
+        return (start + end) / 2
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -351,7 +350,6 @@ class NoteCircle @JvmOverloads constructor(
         }
 
 
-
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is UIRelationship) return false
@@ -378,18 +376,22 @@ class NoteCircle @JvmOverloads constructor(
         val name: String = note.name
         val dotPoint: Point = Point(position, mInnerRadius)
         val labelPoint: Point = Point(position, mLabelRadius)
+        var button: NoteButton by Delegates.notNull<NoteButton>()
 
         private fun defaultPaints(paint: Paint, hintPaint: Paint) = if (isHint) hintPaint else paint
 
         fun drawLabel(canvas: Canvas, paint: Paint = defaultPaints(mLabelPaint, mHintLabelPaint)) {
             drawTextCentered(canvas, paint, name, labelPoint.x, labelPoint.y)
         }
+
         fun drawDot(canvas: Canvas, paint: Paint = defaultPaints(mDotPaint, mHintLabelPaint)) {
             canvas.drawCircle(dotPoint.x, dotPoint.y, mDotRadius, paint)
         }
+
         fun drawRadial(canvas: Canvas, paint: Paint = mHintPaint) {
             canvas.drawLine(mCenterX, mCenterY, dotPoint.x, dotPoint.y, paint)
         }
+
         fun drawHighlighted(canvas: Canvas) {
             drawRadial(canvas, mHighlightPaint)
             drawDot(canvas, mHighlightPaint)
@@ -479,6 +481,10 @@ class NoteCircle @JvmOverloads constructor(
         constructor(note: UINote, startPosition: Double, endPosition: Double) :
                 this(note, Sector(startPosition, endPosition))
 
+        init {
+            note.button = this
+        }
+
         operator fun contains(p: Point): Boolean =
                 p.distance in mButtonRadius..mOuterRadius &&
                         p in sector
@@ -517,7 +523,6 @@ class NoteCircle @JvmOverloads constructor(
     }
 
 
-
     /**
      * https://stackoverflow.com/questions/4909367/how-to-align-text-vertically
      * Requires Draw.Align.LEFT (default)
@@ -529,9 +534,8 @@ class NoteCircle @JvmOverloads constructor(
 
 
     // Adaptation of: https://discuss.kotlinlang.org/t/property-getters-setters-in-custom-view/2300/5
-    inline fun <T> attributable (initialValue: T): ReadWriteProperty<Any?, T> {
-        return Delegates.observable(initialValue) {
-            prop, old, new ->
+    inline fun <T> attributable(initialValue: T): ReadWriteProperty<Any?, T> {
+        return Delegates.observable(initialValue) { prop, old, new ->
             invalidate()
             requestLayout()
         }
@@ -582,15 +586,17 @@ class NoteCircle @JvmOverloads constructor(
         constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
         val startNote: UINote?
+
         init {
-            val startButton = mNoteButtons.find { startPoint in it}
+            val startButton = mNoteButtons.find { startPoint in it }
             this.startNote = startButton?.note
         }
 
         var endNote: UINote?
         val endPoint: Point
+
         init {
-            val touchButton: NoteButton? = mNoteButtons.find { touchPoint in it}
+            val touchButton: NoteButton? = mNoteButtons.find { touchPoint in it }
             if (touchButton == null || touchButton.note == startNote) {
                 this.endNote = null
                 this.endPoint = touchPoint
@@ -630,13 +636,47 @@ class NoteCircle @JvmOverloads constructor(
         constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
         val startNote: UINote? by lazy {
-            val startButton = mNoteButtons.find { startPoint in it}
+            val startButton = mNoteButtons.find { startPoint in it }
             startButton?.note
         }
 
         val endNote: UINote? by lazy {
-            val endButton = mNoteButtons.find { touchPoint in it.sector}
-            endButton?.note
+            if (isFullCircle()) {
+                startNote
+            } else {
+                val endButton = mNoteButtons.find { touchPoint in it.sector }
+                endButton?.note
+            }
+        }
+
+        private fun isFullCircle(): Boolean {
+            val pos = startNote?.position
+            val edgePos = startNote?.button?.sector?.let {
+                if (direction == Direction.ASCENDING) {
+                    it.startPosition
+                } else {
+                    it.endPosition
+                }
+            }
+            if (pos == null || edgePos == null) return false
+
+            val diff = pos - edgePos
+            val boundedDiff = if (direction == Direction.ASCENDING) {
+                normalizePosition(diff)
+            } else {
+                -normalizePosition(-diff)
+            }
+
+            val full = if (direction == Direction.ASCENDING) 1 else -1
+            val limit = full - diff
+
+            val limitDegrees = limit * 360f
+
+            return if (direction == Direction.ASCENDING) {
+                sweepAngle > limitDegrees
+            } else {
+                sweepAngle < limitDegrees
+            }
         }
 
         override fun draw(canvas: Canvas) {
@@ -653,18 +693,20 @@ class NoteCircle @JvmOverloads constructor(
         fun drawDotsAndRadials(canvas: Canvas, startNote: UINote?, endNote: UINote?) {
             if (startNote == null || endNote == null) return
 
-            if (startNote != endNote) {
-                for (note in mNotes.iterateUntilExcluding(startNote, endNote, direction)) {
-                    note.drawRadial(canvas, mHighlightPaint)
-                    note.drawDot(canvas, mDotPaint)
-                }
+            val iterator = if (isFullCircle()) {
+                mNotes.iterateFrom(startNote, direction)
+            } else {
+                mNotes.iterateUntilExcluding(startNote, endNote, direction)
+            }
+
+            for (note in iterator) {
+                note.drawRadial(canvas, mHighlightPaint)
+                note.drawDot(canvas, mDotPaint)
             }
             startNote.drawHighlighted(canvas)
-
-            if (abs(sweepAngle) < 360f) {
-                endNote.drawHighlighted(canvas)
-            }
+            endNote.drawHighlighted(canvas)
         }
+
 
         override fun next(touchPoint: Point): TouchInput {
             updateSweepAngle(touchPoint)
@@ -676,6 +718,7 @@ class NoteCircle @JvmOverloads constructor(
         }
     }
 }
+
 
 
 abstract class TouchInput(
@@ -719,8 +762,8 @@ abstract class TouchInput(
 
 // Ensures position is in range [0.0, 1.0)
 fun normalizePosition(position: Position): Position {
-    val pos = position % 1
-    return if (pos < 0) { pos + 1 } else pos
+    val pos = position % 1.0
+    return if (pos < 0) { pos + 1.0 } else pos
 }
 
 

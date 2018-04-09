@@ -23,7 +23,7 @@ interface TemperamentController {
     val uiNotes: Set<NoteCircle.UINote>
     val uiRelationships: Set<NoteCircle.UIRelationship>
 
-    fun input(input: TouchInput)
+    fun input(touchInput: TouchInput)
 }
 
 /**
@@ -69,31 +69,63 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
         update()
     }
 
-    override fun input(input: TouchInput) {
-        Log.d(DEBUG_TAG, "Inputting touch event: $input")
+    override fun input(touchInput: TouchInput) {
+        Log.d(DEBUG_TAG, "Inputting touch event: $touchInput")
 
-        val fromNote = input.fromNote
-        val toNote = input.toNote
-        if (fromNote != null && toNote != null) {
-            val interval = fromNote.intervalTo(toNote)
-            if (interval != null) {
-                val temper = if (input.isDirect)
-                    Temper(interval)
-                else
-                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.SMALLER)
+        val fromNote = touchInput.fromNote
+        val toNote = touchInput.toNote
 
-                // Do it:
-                Log.d(DEBUG_TAG, "Setting relationship: fromNote=$fromNote, toNote=$toNote, temper=$temper")
-
-                defaultNotes.remove(fromNote)
-                defaultNotes.remove(toNote)
-                temperament.setRelationship(fromNote, toNote, temper)
-                update()
-            }
-
+        if (fromNote == null || toNote == null) {
+            Log.d(DEBUG_TAG, "Ingnoring TouchInput. fromNote=$fromNote and toNote=$toNote must both be non-null")
+            return
         }
 
+        if (touchInput.isDirect) {
+            inputLine(fromNote, toNote)
+        } else {
+            inputArc(fromNote, toNote, touchInput.direction)
+        }
     }
+
+    private fun inputLine(fromNote: Note, toNote: Note) {
+
+
+
+    }
+
+    private fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
+
+    }
+
+
+
+
+
+//
+//    fun input(input: TouchInput) {
+//        Log.d(DEBUG_TAG, "Inputting touch event: $input")
+//
+//        val fromNote = input.fromNote
+//        val toNote = input.toNote
+//        if (fromNote != null && toNote != null) {
+//            val interval = fromNote.intervalTo(toNote)
+//            if (interval != null) {
+//                val temper = if (input.isDirect)
+//                    Temper(interval)
+//                else
+//                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.SMALLER)
+//
+//                // Do it:
+//                Log.d(DEBUG_TAG, "Setting relationship: fromNote=$fromNote, toNote=$toNote, temper=$temper")
+//
+//                defaultNotes.remove(fromNote)
+//                defaultNotes.remove(toNote)
+//                temperament.setRelationship(fromNote, toNote, temper)
+//                update()
+//            }
+//
+//        }
+//    }
 
 
     private fun update() {

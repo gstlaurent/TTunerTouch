@@ -23,6 +23,9 @@ class RingListTests {
 
         val up9to5 = rl.iterateUntilExcluding(9, 5, Direction.ASCENDING).toList()
         assertEquals(listOf(9,0,1,2,3,4), up9to5)
+
+        val up9to9 = rl.iterateUntilExcluding(9, 9, Direction.ASCENDING).toList()
+        assertEquals(listOf<Int>(), up9to9)
     }
 
 }
