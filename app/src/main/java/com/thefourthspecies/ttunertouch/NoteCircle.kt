@@ -374,21 +374,10 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     inner class UINote(position: Double, val note: Note, var isHint: Boolean = false) : Comparable<UINote> {
-        val position: Double
-        init {
-            val pos = position % 1
-            this.position = if (pos < 0) { pos + 1 } else pos
-        }
-
+        val position: Position = normalizePosition(position)
         val name: String = note.name
         val dotPoint: Point = Point(position, mInnerRadius)
         val labelPoint: Point = Point(position, mLabelRadius)
-
-        init {
-            assert(0.0 <= this.position && this.position < 1.0) {
-                "$this: 'position' must be in range [0,1)"
-            }
-        }
 
         private fun defaultPaints(paint: Paint, hintPaint: Paint) = if (isHint) hintPaint else paint
 
@@ -513,27 +502,9 @@ class NoteCircle @JvmOverloads constructor(
     }
 
     // Variable since currently the notebutton calculate function must set them
-    class Sector(startPos: Double = 0.0, endPos: Double = 0.0) {
-        var startPosition: Position = 0.0
-            set(pos) {
-                assert(pos >= 0.0) {
-                    "Position must not be negative. Given startPosition=$pos"
-                }
-                field = pos
-            }
-
-        var endPosition: Position = 0.0
-            set(pos) {
-                assert(pos >= 0.0) {
-                    "Position must not be negative. Given endPosition=$pos"
-                }
-                field = pos
-            }
-
-        init {
-            startPosition = startPos
-            endPosition = endPos
-        }
+    class Sector(startPosition: Position = 0.0, endPosition: Position = 0.0) {
+        var startPosition: Position = normalizePosition(startPosition)
+        var endPosition: Position = normalizePosition(endPosition)
 
         operator fun contains(p: Point): Boolean {
             val result = if (startPosition <= endPosition) {
@@ -744,6 +715,12 @@ abstract class TouchInput(
 
     override fun toString() = "${javaClass.simpleName}[from: ${fromNote?.name}, to: ${toNote?.name}, sweepAngle: %.1f]".format(sweepAngle)
 
+}
+
+// Ensures position is in range [0.0, 1.0)
+fun normalizePosition(position: Position): Position {
+    val pos = position % 1
+    return if (pos < 0) { pos + 1 } else pos
 }
 
 
