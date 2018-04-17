@@ -2,7 +2,6 @@ package com.thefourthspecies.ttunertouch
 
 import android.content.Context
 import android.graphics.*
-import android.support.v4.view.MotionEventCompat
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -11,7 +10,6 @@ import kotlin.properties.ReadWriteProperty
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.TextView
-import kotlin.math.abs
 
 const val DEBUG_TAG = "TTuner"
 
@@ -32,7 +30,7 @@ class NoteCircle @JvmOverloads constructor(
 
 //    private val mPoints = HashMap<UINote, Point>()
 
-    lateinit var controller: TemperamentController
+    lateinit var mController: TemperamentController
     lateinit var textView: TextView
 
     var relationships: Set<UIRelationship>
@@ -298,16 +296,22 @@ class NoteCircle @JvmOverloads constructor(
 
     private fun onNonGestureTouchEvent(event: MotionEvent): Boolean {
         return when (event.actionMasked) {
-            MotionEvent.ACTION_UP -> handleUpAction(event)
+            MotionEvent.ACTION_UP -> onUp(event)
             else -> super.onTouchEvent(event)
 
         }
     }
 
-    private fun handleUpAction(upEvent: MotionEvent): Boolean {
+    private fun onUp(upEvent: MotionEvent): Boolean {
         mTouchInput?.let {
             mTouchInput = null
-            controller.input(it)
+
+            val fromNote = it.fromNote
+            val toNote = it.toNote
+            if (fromNote != null && toNote != null) {
+                Log.d(DEBUG_TAG, "Inputting touch event: $mTouchInput")
+                it.input(fromNote, toNote)
+            }
         }
 
         invalidate()
@@ -580,8 +584,6 @@ class NoteCircle @JvmOverloads constructor(
             get() = startNote?.note
         override val toNote: Note?
             get() = endNote?.note
-        override val isDirect: Boolean
-            get() = true
 
         constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
@@ -621,6 +623,10 @@ class NoteCircle @JvmOverloads constructor(
             startNote?.drawHighlighted(canvas)
             endNote?.drawHighlighted(canvas)
         }
+
+        override fun input(fromNote: Note, toNote: Note) {
+            mController.inputLine(fromNote, toNote)
+        }
     }
 
     inner class ArcInput(startPoint: Point, touchPoint: Point, sweepAngle: Float) :
@@ -630,10 +636,6 @@ class NoteCircle @JvmOverloads constructor(
             get() = startNote?.note
         override val toNote: Note?
             get() = endNote?.note
-        override val isDirect: Boolean
-            get() = false
-
-        constructor (startPoint: Point) : this(startPoint, startPoint, 0f)
 
         val startNote: UINote? by lazy {
             val startButton = mNoteButtons.find { startPoint in it }
@@ -730,6 +732,10 @@ class NoteCircle @JvmOverloads constructor(
                 ArcInput(startPoint, touchPoint, sweepAngle)
             }
         }
+
+        override fun input(fromNote: Note, toNote: Note) {
+            mController.inputArc(fromNote, toNote, direction)
+        }
     }
 }
 
@@ -742,7 +748,6 @@ abstract class TouchInput(
 ) {
     abstract val fromNote: Note?
     abstract val toNote: Note?
-    abstract val isDirect: Boolean
 
     protected var sweepAngle: Float = sweepAngle
         set(newAngle) { // So that you never exceed 720 degrees of having to scroll back
@@ -769,6 +774,7 @@ abstract class TouchInput(
 
     abstract fun draw(canvas: Canvas)
     abstract fun next(touchPoint: Point): TouchInput
+    abstract fun input(fromNote: Note, toNote: Note)
 
     override fun toString() = "${javaClass.simpleName}[from: ${fromNote?.name}, to: ${toNote?.name}, sweepAngle: %.1f]".format(sweepAngle)
 

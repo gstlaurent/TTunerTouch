@@ -1,6 +1,5 @@
 package com.thefourthspecies.ttunertouch
 
-import android.provider.SyncStateContract.Helpers.update
 import android.util.Log
 
 val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
@@ -23,7 +22,8 @@ interface TemperamentController {
     val uiNotes: Set<NoteCircle.UINote>
     val uiRelationships: Set<NoteCircle.UIRelationship>
 
-    fun input(touchInput: TouchInput)
+    fun inputArc(fromNote: Note, toNote: Note, direction: Direction)
+    fun inputLine(fromNote: Note, toNote: Note)
 }
 
 /**
@@ -65,36 +65,37 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
     var order = Order.FIFTHS
 
     init {
-        noteCircle.controller = this
+        noteCircle.mController = this
         update()
     }
 
-    override fun input(touchInput: TouchInput) {
-        Log.d(DEBUG_TAG, "Inputting touch event: $touchInput")
+//    override fun input(touchInput: TouchInput) {
+//        Log.d(DEBUG_TAG, "Inputting touch event: $touchInput")
+//
+//        val fromNote = touchInput.fromNote
+//        val toNote = touchInput.toNote
+//
+//        if (fromNote == null || toNote == null) {
+//            Log.d(DEBUG_TAG, "Ignoring TouchInput. fromNote=$fromNote and toNote=$toNote must both be non-null")
+//            return
+//        }
+//
+//        if (touchInput.isDirect) {
+//            inputLine(fromNote, toNote)
+//        } else {
+//            inputArc(fromNote, toNote, touchInput.direction)
+//        }
+//    }
 
-        val fromNote = touchInput.fromNote
-        val toNote = touchInput.toNote
-
-        if (fromNote == null || toNote == null) {
-            Log.d(DEBUG_TAG, "Ingnoring TouchInput. fromNote=$fromNote and toNote=$toNote must both be non-null")
-            return
-        }
-
-        if (touchInput.isDirect) {
-            inputLine(fromNote, toNote)
-        } else {
-            inputArc(fromNote, toNote, touchInput.direction)
-        }
+    override fun inputLine(fromNote: Note, toNote: Note) {
+        // Display single input dialog with default values
     }
 
-    private fun inputLine(fromNote: Note, toNote: Note) {
-
-
-
-    }
-
-    private fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
-
+    override fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
+        assert(order == Order.FIFTHS) {
+            "Can only input by arc if circle of FIFTHS. Actual: $order"
+        }
+        // Display group input dialog with default values
     }
 
 
