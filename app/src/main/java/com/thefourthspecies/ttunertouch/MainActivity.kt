@@ -3,12 +3,6 @@ package com.thefourthspecies.ttunertouch
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import kotlinx.android.synthetic.main.activity_main.*
-import android.view.MotionEvent
-import android.text.method.Touch.onTouchEvent
-import android.support.v4.view.GestureDetectorCompat
-import android.view.GestureDetector
-import android.app.Activity
-import android.util.Log
 
 
 class MainActivity : AppCompatActivity() {
@@ -21,7 +15,7 @@ class MainActivity : AppCompatActivity() {
         noteCircle.textView = textView
 
 
-        controller = NewTemperamentController(noteCircle)
+        controller = NewTemperamentController(noteCircle, supportFragmentManager)
 
 
 

@@ -1,6 +1,13 @@
 package com.thefourthspecies.ttunertouch
 
 import android.util.Log
+import android.content.DialogInterface
+import android.app.AlertDialog
+import android.app.Dialog
+import android.os.Bundle
+import android.support.v4.app.DialogFragment
+import android.support.v4.app.FragmentManager
+
 
 val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
 val DEFAULT_REFERENCE_NOTE = Note(Note.Letter.A)
@@ -29,7 +36,7 @@ interface TemperamentController {
 /**
  * Created by Graham on 2018-02-21.
  */
-class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentController {
+class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: FragmentManager?) : TemperamentController {
     override val temperament = ChromaticTemperament(DEFAULT_REFERENCE_NOTE, DEFAULT_REFERENCE_PITCH)
 
     override val uiRelationships: Set<NoteCircle.UIRelationship>
@@ -89,6 +96,13 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
 
     override fun inputLine(fromNote: Note, toNote: Note) {
         // Display single input dialog with default values
+        val dialog = FireMissilesDialogFragment()
+        val fm = fragmentManager
+        if (fm == null) {
+            Log.d(DEBUG_TAG, "fragmentManager is null")
+        } else {
+            dialog.show(fm, "Input Line Fragment Test")
+        }
     }
 
     override fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
@@ -96,6 +110,8 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
             "Can only input by arc if circle of FIFTHS. Actual: $order"
         }
         // Display group input dialog with default values
+//        val dialog = FireMissilesDialogFragment()
+//        dialog.show(fragmentManager, "Input Arc Fragment Test")
     }
 
 
@@ -201,3 +217,30 @@ class NewTemperamentController(val noteCircle: NoteCircle) : TemperamentControll
 }
 
 
+class FireMissilesDialogFragment : DialogFragment() {
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        // Use the Builder class for convenient dialog construction
+        assert(activity != null) {
+            "Activity is null"
+        }
+        val builder = AlertDialog.Builder(activity)
+//        builder.setMessage(R.string.dialog_fire_missiles)
+//                .setPositiveButton(R.string.fire, DialogInterface.OnClickListener { dialog, id ->
+//                    // FIRE ZE MISSILES!
+//                })
+//                .setNegativeButton(R.string.cancel, DialogInterface.OnClickListener { dialog, id ->
+//                    // User cancelled the dialog
+//                })
+//
+
+        builder.setMessage("Fire missiles?")
+                .setPositiveButton("fire", DialogInterface.OnClickListener { dialog, id ->
+                    Log.d(DEBUG_TAG, "FIRE ZE MISSILES!")
+                })
+                .setNegativeButton("CANCEL", DialogInterface.OnClickListener { dialog, id ->
+                    Log.d(DEBUG_TAG, "User cancelled the dialog")
+                })
+        // Create the AlertDialog object and return it
+        return builder.create()
+    }
+}
