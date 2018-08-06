@@ -1,4 +1,4 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.model
 
 const val CHROM_SIZE = 12
 

@@ -1,6 +1,6 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.addedittemperament
 
-import android.graphics.Path
+import com.thefourthspecies.ttunertouch.model.Note
 
 /**
  * Created by Graham on 2018-01-23.
@@ -63,7 +63,7 @@ class NoteCircleViewState {
 class NoteMap(val map: HashMap<Note, Point>) : MutableMap<Note, Point> by map {
     fun at(note: Note): Point {
         val point = map[note]
-        assert(point != null) {
+        com.thefourthspecies.ttunertouch.util.assert(point != null) {
             "Note $note has no corresponding Point."
         }
         return point ?: Point.polar(0.0, 0f)

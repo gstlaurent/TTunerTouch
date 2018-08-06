@@ -1,7 +1,6 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.addedittemperament
 
 import android.util.Log
-import kotlin.math.roundToInt
 
 /**
  * Point: represents a location in two ways:
@@ -24,7 +23,7 @@ class Point private constructor() {
 
     var position: Double = 0.0
         private set(position) {
-            assert(0 <= position && position < 1.0) {
+            com.thefourthspecies.ttunertouch.util.assert(0 <= position && position < 1.0) {
                 "$this: 'position' must be in range [0-1)."
             }
             field = position
@@ -60,7 +59,7 @@ class Point private constructor() {
         }
 
     private var version = 0
-    private fun needsScreenRefresh(): Boolean = version != Point.version
+    private fun needsScreenRefresh(): Boolean = version != Companion.version
 
     fun moveByPosition(position: Double) {
         this.position = position
@@ -94,7 +93,7 @@ class Point private constructor() {
         x = calcX(theta, distance, centerX)
         y = calcY(theta, distance, centerY)
 
-        version = Point.version
+        version = Companion.version
 
     }
 

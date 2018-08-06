@@ -1,7 +1,8 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.model
 
 import android.util.Log
-import android.util.Rational
+import com.thefourthspecies.ttunertouch.addedittemperament.DEBUG_TAG
+import com.thefourthspecies.ttunertouch.addedittemperament.Direction
 import java.util.*
 import kotlin.collections.HashSet
 import kotlin.math.abs
@@ -24,10 +25,10 @@ class Fraction(val numerator: Int, val denominator: Int) {
     constructor(size: Int) : this(size, 1)
 
     init {
-        assert(numerator >= 0) {
+        com.thefourthspecies.ttunertouch.util.assert(numerator >= 0) {
             "Numerator must be 0 or positive. Given $numerator"
         }
-        assert(denominator > 0) {
+        com.thefourthspecies.ttunertouch.util.assert(denominator > 0) {
             "Denominator must be positive. Given $denominator"
         }
     }
@@ -53,32 +54,32 @@ class Fraction(val numerator: Int, val denominator: Int) {
     }
 }
 
-// fraction: a positive or negative (or 0) value indicating the direction and amount of temper by the comma
+// size: a positive or negative (or 0) value indicating the direction and amount of temper by the comma
 // Tempers that have tempered ratios that calculate out to the same value are essentially the same, and considered equal
-class Temper(val interval: Interval, comma: Comma, fraction: Fraction, change: Change) {
-    constructor(interval: Interval) : this(interval, Comma.PURE, Fraction(0), Change.UNTEMPERED)
+class Temper(val interval: Interval, comma: Comma, size: Fraction, direction: Direction) {
+    constructor(interval: Interval) : this(interval, Comma.PURE, Fraction(0), Direction.UNTEMPERED)
 
     val comma: Comma
     val fraction: Fraction
-    val change: Change
+    val direction: Direction
 
     init {
-        if (comma == Comma.PURE || fraction.isZero || change == Change.UNTEMPERED) {
+        if (comma == Comma.PURE || size.isZero || direction == Direction.UNTEMPERED) {
             this.comma = Comma.PURE
             this.fraction = Fraction(0)
-            this.change = Change.UNTEMPERED
+            this.direction = Direction.UNTEMPERED
         } else {
             this.comma = comma
-            this.fraction = fraction
-            this.change = change
+            this.fraction = size
+            this.direction = direction
         }
     }
 
     val temperedRatio: Double = interval.ratio * commaFractionRatio
-    val label: String = "${fraction.label}${comma.symbol}"
+    val label: String = "${size.label}${comma.symbol}"
 
     private val commaFractionRatio: Double
-        get() = Math.pow(comma.ratio, fraction * change.sign)
+        get() = Math.pow(comma.ratio, fraction * direction.sign)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -93,11 +94,11 @@ class Temper(val interval: Interval, comma: Comma, fraction: Fraction, change: C
         return temperedRatio.hashCode()
     }
 
-    override fun toString(): String = "Temper(${change.name} ${interval.name} by $fraction ${comma.name} comma}"
+    override fun toString(): String = "Temper(${direction.name} ${interval.name} by $fraction ${comma.name} comma}"
 
-    enum class Change(val sign: Int, val symbol: String) {
-        BIGGER(+1, "+"),
-        SMALLER(-1, "-"),
+    enum class Direction(val sign: Int, val symbol: String) {
+        WIDER(+1, "+"),
+        NARROWER(-1, "-"),
         UNTEMPERED(0, "")
     }
 }
@@ -165,7 +166,7 @@ open class PureTemperament(referenceNote: Note, referencePitch: Hertz) : Tempera
         }
 
     init {
-        assert(referencePitch > 0.0) {
+        com.thefourthspecies.ttunertouch.util.assert(referencePitch > 0.0) {
             "Reference Pitch must be greater than 0. Given $referencePitch"
         }
         invalidate()
@@ -297,7 +298,7 @@ open class PureTemperament(referenceNote: Note, referencePitch: Hertz) : Tempera
     }
 
     private fun normalize(pitch: Hertz): Hertz {
-        assert(pitch > 0) {
+        com.thefourthspecies.ttunertouch.util.assert(pitch > 0) {
             "Can only normalize pitch greater than 0. Given pitch=$pitch"
         }
         return when {

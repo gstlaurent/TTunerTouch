@@ -1,5 +1,6 @@
 package com.thefourthspecies.ttunertouch
 
+import com.thefourthspecies.ttunertouch.addedittemperament.Point
 import org.junit.Test
 import org.junit.Assert.*
 

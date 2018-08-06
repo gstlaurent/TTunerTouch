@@ -1,12 +1,13 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.addedittemperament
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import com.thefourthspecies.ttunertouch.R
 import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
-    lateinit var controller: NewTemperamentController
+    lateinit var presenter: NewTemperamentPresenter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -15,7 +16,7 @@ class MainActivity : AppCompatActivity() {
         noteCircle.textView = textView
 
 
-        controller = NewTemperamentController(noteCircle, supportFragmentManager)
+        presenter = NewTemperamentPresenter(noteCircle)
 
 
 

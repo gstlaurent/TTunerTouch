@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.thefourthspecies.ttunertouch.MainActivity">
+    tools:context="com.thefourthspecies.ttunertouch.addedittemperament.MainActivity">
 
     <!--<com.thefourthspecies.ttunertouch.NoteRing-->
         <!--android:id="@+id/noteRing"-->
@@ -42,7 +42,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.thefourthspecies.ttunertouch.NoteCircle
+    <com.thefourthspecies.ttunertouch.addedittemperament.NoteCircle
         android:splitMotionEvents="false"
         android:id="@+id/noteCircle"
         android:layout_width="wrap_content"

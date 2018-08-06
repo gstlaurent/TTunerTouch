@@ -1,4 +1,4 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.addedittemperament
 
 
 /**
@@ -27,7 +27,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     private fun removeFrom(map: MutableMap<T, Pointers<T>>, item: T, first: T?) {
-        assert(map.contains(item)) {
+        com.thefourthspecies.ttunertouch.util.assert(map.contains(item)) {
             "Cannot remove item that is not in RingList: $item"
         }
 
@@ -41,7 +41,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
             mFirst = if (map.containsKey(next)) {
                 next
             } else {
-                assert(map.isEmpty()) {
+                com.thefourthspecies.ttunertouch.util.assert(map.isEmpty()) {
                     "RingList: There is no mFirst but mItems is not empty"
                 }
                 null
@@ -57,7 +57,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     private fun addTo(map: MutableMap<T, Pointers<T>>, item: T, first: T?) {
-        assert(!map.containsKey(item)) {
+        com.thefourthspecies.ttunertouch.util.assert(!map.containsKey(item)) {
             "Trying to add an item that is already in the RingList: item=$item"
         }
 
@@ -135,7 +135,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
         var isStarting = true
 
         init {
-            assert(map.contains(start) && map.containsKey(end)) {
+            com.thefourthspecies.ttunertouch.util.assert(map.contains(start) && map.containsKey(end)) {
                 "RingIterator starting or ending at item that is not present in RingList: start=$start, end=$end"
             }
         }

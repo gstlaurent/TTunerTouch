@@ -1,6 +1,7 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.util
 
 import android.util.Log
+import com.thefourthspecies.ttunertouch.addedittemperament.DEBUG_TAG
 
 /**
  * Created by Graham on 2018-01-21.

@@ -1,12 +1,16 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.addedittemperament
 
 import android.util.Log
 import android.content.DialogInterface
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.DialogFragment
 import android.support.v4.app.FragmentManager
+import com.thefourthspecies.ttunertouch.model.*
+import kotlin.coroutines.experimental.CoroutineContext
+import kotlinx.coroutines.experimental.android.UI
 
 
 val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
@@ -23,20 +27,21 @@ enum class Order {
 }
 
 
-
-interface TemperamentController {
-    val temperament: Temperament
-    val uiNotes: Set<NoteCircle.UINote>
-    val uiRelationships: Set<NoteCircle.UIRelationship>
-
-    fun inputArc(fromNote: Note, toNote: Note, direction: Direction)
-    fun inputLine(fromNote: Note, toNote: Note)
-}
-
 /**
  * Created by Graham on 2018-02-21.
  */
-class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: FragmentManager?) : TemperamentController {
+class NewTemperamentPresenter(
+        private val temperamentView: AddEditTemperamentContract.View
+) : AddEditTemperamentContract.Presenter {
+
+    init {
+        temperamentView.presenter = this
+    }
+
+    override fun start() {
+        update()
+    }
+
     override val temperament = ChromaticTemperament(DEFAULT_REFERENCE_NOTE, DEFAULT_REFERENCE_PITCH)
 
     override val uiRelationships: Set<NoteCircle.UIRelationship>
@@ -71,10 +76,6 @@ class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: 
 
     var order = Order.FIFTHS
 
-    init {
-        noteCircle.mController = this
-        update()
-    }
 
 //    override fun input(touchInput: TouchInput) {
 //        Log.d(DEBUG_TAG, "Inputting touch event: $touchInput")
@@ -95,6 +96,7 @@ class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: 
 //    }
 
     override fun inputLine(fromNote: Note, toNote: Note) {
+        temperamentView.displayLineDetails()
         // Display single input dialog with default values
         val dialog = FireMissilesDialogFragment()
         val fm = fragmentManager
@@ -106,7 +108,7 @@ class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: 
     }
 
     override fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
-        assert(order == Order.FIFTHS) {
+        com.thefourthspecies.ttunertouch.util.assert(order == Order.FIFTHS) {
             "Can only input by arc if circle of FIFTHS. Actual: $order"
         }
         // Display group input dialog with default values
@@ -130,7 +132,7 @@ class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: 
 //                val temper = if (input.isDirect)
 //                    Temper(interval)
 //                else
-//                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.SMALLER)
+//                    Temper(interval, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.NARROWER)
 //
 //                // Do it:
 //                Log.d(DEBUG_TAG, "Setting relationship: fromNote=$fromNote, toNote=$toNote, temper=$temper")
@@ -198,7 +200,7 @@ class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: 
     fun Note.toUI(): NoteCircle.UINote {
         val isHint = defaultNotes.contains(this)
         if (isHint) {
-            assert(!temperament.notes.contains(this)) {
+            com.thefourthspecies.ttunertouch.util.assert(!temperament.notes.contains(this)) {
                 "Note exists in default form as well as in Temperament: $this"
             }
         }
@@ -220,7 +222,7 @@ class NewTemperamentController(val noteCircle: NoteCircle, val fragmentManager: 
 class FireMissilesDialogFragment : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         // Use the Builder class for convenient dialog construction
-        assert(activity != null) {
+        com.thefourthspecies.ttunertouch.util.assert(activity != null) {
             "Activity is null"
         }
         val builder = AlertDialog.Builder(activity)

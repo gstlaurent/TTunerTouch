@@ -1,4 +1,4 @@
-package com.thefourthspecies.ttunertouch
+package com.thefourthspecies.ttunertouch.addedittemperament
 
 import android.content.Context
 import android.graphics.*
@@ -10,6 +10,8 @@ import kotlin.properties.ReadWriteProperty
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.TextView
+import com.thefourthspecies.ttunertouch.R
+import com.thefourthspecies.ttunertouch.model.Note
 
 const val DEBUG_TAG = "TTuner"
 
@@ -24,9 +26,18 @@ typealias Position = Double
 /**
  * Created by Graham on 2017-12-25.
  */
-class NoteCircle @JvmOverloads constructor(
+class NoteCircle1 @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : View(context, attrs, defStyleAttr) {
+) : View(context, attrs, defStyleAttr), AddEditTemperamentContract.View {
+
+    override lateinit var presenter: AddEditTemperamentContract.Presenter
+
+    override fun displayLineDetails() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        // Display single input dialog with default values
+//        val dialog = FireMissilesDialogFragment()
+        //dialog.show(fragmentSupportManager, "Input Line Fragment Test")
+    }
 
 //    private val mPoints = HashMap<UINote, Point>()
 
@@ -55,7 +66,7 @@ class NoteCircle @JvmOverloads constructor(
 //    }
 
     fun update(controller: TemperamentController) {
-//        setNotePoints(controller.uiNotes)
+//        setNotePoints(presenter.uiNotes)
         mNotes = RingList<UINote>(controller.uiNotes)
         mRelationships = controller.uiRelationships
         onDataChange()
@@ -660,7 +671,7 @@ class NoteCircle @JvmOverloads constructor(
         }
 
         private fun isFullCircleDescending(): Boolean {
-             assert(direction == Direction.DESCENDING) {
+            com.thefourthspecies.ttunertouch.util.assert(direction == Direction.DESCENDING) {
                 "isFullCircleDescending called when direction == ${direction.name}"
             }
 
@@ -678,7 +689,7 @@ class NoteCircle @JvmOverloads constructor(
         }
 
         private fun isFullCircleAscending(): Boolean {
-            assert(direction == Direction.ASCENDING) {
+            com.thefourthspecies.ttunertouch.util.assert(direction == Direction.ASCENDING) {
                 "isFullCircleAscending called when direction == ${direction.name}"
             }
 
@@ -742,9 +753,9 @@ class NoteCircle @JvmOverloads constructor(
 
 
 abstract class TouchInput(
-    protected val startPoint: Point, // TODO: startNote, when points are easily accessible from a note
-    protected var touchPoint: Point,
-    sweepAngle: Float
+        protected val startPoint: Point, // TODO: startNote, when points are easily accessible from a note
+        protected var touchPoint: Point,
+        sweepAngle: Float
 ) {
     abstract val fromNote: Note?
     abstract val toNote: Note?

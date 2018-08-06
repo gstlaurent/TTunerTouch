@@ -1,34 +1,30 @@
 package com.thefourthspecies.ttunertouch
 
+import com.thefourthspecies.ttunertouch.model.*
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.`is` as Is
 import org.junit.Test
 
 import org.junit.Assert.*
-import org.junit.Rule
-import org.junit.rules.ExpectedException
-import org.junit.runners.JUnit4
-import kotlin.reflect.KClass
-
 
 
 /**
  * Created by Graham on 2018-01-06.
  */
 class ModelTests {
-    val Af =  Note(Note.Letter.A, Note.Accidental.FLAT)
-    val Ef =  Note(Note.Letter.E, Note.Accidental.FLAT)
-    val Bf =  Note(Note.Letter.B, Note.Accidental.FLAT)
-    val F =   Note(Note.Letter.F)
-    val C =   Note(Note.Letter.C)
-    val G =   Note(Note.Letter.G)
-    val D =   Note(Note.Letter.D)
-    val A =   Note(Note.Letter.A)
-    val E =   Note(Note.Letter.E)
-    val B =   Note(Note.Letter.B)
-    val Fs =  Note(Note.Letter.F, Note.Accidental.SHARP)
-    val Cs =  Note(Note.Letter.C, Note.Accidental.SHARP)
+    val Af = Note(Note.Letter.A, Note.Accidental.FLAT)
+    val Ef = Note(Note.Letter.E, Note.Accidental.FLAT)
+    val Bf = Note(Note.Letter.B, Note.Accidental.FLAT)
+    val F = Note(Note.Letter.F)
+    val C = Note(Note.Letter.C)
+    val G = Note(Note.Letter.G)
+    val D = Note(Note.Letter.D)
+    val A = Note(Note.Letter.A)
+    val E = Note(Note.Letter.E)
+    val B = Note(Note.Letter.B)
+    val Fs = Note(Note.Letter.F, Note.Accidental.SHARP)
+    val Cs = Note(Note.Letter.C, Note.Accidental.SHARP)
 
 
     @Test
@@ -50,7 +46,7 @@ class ModelTests {
     @Test
     fun equalTemperamentTests() {
         val pitchA = 440.0
-        val eqTemp = Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 12), Temper.Change.SMALLER)
+        val eqTemp = Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 12), Temper.Direction.NARROWER)
         val t = ChromaticTemperament(A, pitchA)
         t.setRelationship(Af, Ef, eqTemp)
         t.setRelationship(Ef, Bf, eqTemp)
@@ -68,17 +64,17 @@ class ModelTests {
         val notes = setOf<Note>(Af, Ef, Bf, F, C, G, D, A, E, B, Fs, Cs)
         assertEquals(notes, t.notes)
 
-        assertEquals(pitchA*Math.pow(2.0, 0/12.0), t.pitchOf(A)!!,   HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 1/12.0), t.pitchOf(Bf)!!,  HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 2/12.0), t.pitchOf(B)!!,   HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 3/12.0), t.pitchOf(C)!!,   HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 4/12.0), t.pitchOf(Cs)!!,  HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 5/12.0), t.pitchOf(D)!!,   HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 6/12.0), t.pitchOf(Ef)!!,  HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 7/12.0), t.pitchOf(E)!!,   HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 8/12.0), t.pitchOf(F)!!,   HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 9/12.0), t.pitchOf(Fs)!!,  HERTZ_TOLERANCE)
-        assertEquals(pitchA*Math.pow(2.0, 10/12.0), t.pitchOf(G)!!,  HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 0/12.0), t.pitchOf(A)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 1/12.0), t.pitchOf(Bf)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 2/12.0), t.pitchOf(B)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 3/12.0), t.pitchOf(C)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 4/12.0), t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 5/12.0), t.pitchOf(D)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 6/12.0), t.pitchOf(Ef)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 7/12.0), t.pitchOf(E)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 8/12.0), t.pitchOf(F)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 9/12.0), t.pitchOf(Fs)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA*Math.pow(2.0, 10/12.0), t.pitchOf(G)!!, HERTZ_TOLERANCE)
         assertEquals(pitchA*Math.pow(2.0, 11/12.0) / 2.0, t.pitchOf(Af)!!, HERTZ_TOLERANCE)
 
         assertTrue(t.relationships.contains(Relationship(Ef, Af, eqTemp)))
@@ -91,7 +87,7 @@ class ModelTests {
         val t = ChromaticTemperament(A, pitchA)
 
         t.setRelationship(A, Cs, Temper(Interval.MAJOR_THIRD))
-        assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA* Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
 
         val pure5th = Temper(Interval.PERFECT_FIFTH)
         t.setRelationship(A, E, pure5th)
@@ -114,18 +110,18 @@ class ModelTests {
         val pitchA = 415.0
         val t = ChromaticTemperament(A, pitchA)
 
-        val quarter5th = Temper(Interval.PERFECT_FIFTH, Comma.SYNTONIC, Fraction(1, 4), Temper.Change.SMALLER)
+        val quarter5th = Temper(Interval.PERFECT_FIFTH, Comma.SYNTONIC, Fraction(1, 4), Temper.Direction.NARROWER)
         t.setRelationship(A, E, quarter5th)
         t.setRelationship(B, E, quarter5th)
         t.setRelationship(B, Fs, quarter5th)
         t.setRelationship(Fs, Cs, quarter5th)
 
-        assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA* Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
 
         val pure3rd = Temper(Interval.MAJOR_THIRD)
         t.setRelationship(A, Cs, pure3rd)
 
-        assertEquals(pitchA*Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
+        assertEquals(pitchA* Interval.MAJOR_THIRD.ratio, t.pitchOf(Cs)!!, HERTZ_TOLERANCE)
         assertEquals(
                 setOf(
                         Relationship(A, Cs, pure3rd),
@@ -164,15 +160,15 @@ class ModelTests {
     fun temperTests() {
         // All Pure
         assertThat(Temper(Interval.MAJOR_THIRD),
-                Is(Temper(Interval.MAJOR_THIRD, Comma.PURE, Fraction(0), Temper.Change.UNTEMPERED)))
+                Is(Temper(Interval.MAJOR_THIRD, Comma.PURE, Fraction(0), Temper.Direction.UNTEMPERED)))
         assertThat(Temper(Interval.PERFECT_FIFTH),
-                Is(Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(0), Temper.Change.UNTEMPERED)))
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(0), Temper.Direction.UNTEMPERED)))
         assertThat(Temper(Interval.PERFECT_FIFTH),
-                Is(Temper(Interval.PERFECT_FIFTH, Comma.PURE, Fraction(1, 6), Temper.Change.UNTEMPERED)))
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PURE, Fraction(1, 6), Temper.Direction.UNTEMPERED)))
         assertThat(Temper(Interval.PERFECT_FIFTH),
-                Is(Temper(Interval.PERFECT_FIFTH, Comma.PURE, Fraction(0, 6), Temper.Change.BIGGER)))
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PURE, Fraction(0, 6), Temper.Direction.WIDER)))
         assertThat(Temper(Interval.PERFECT_FIFTH),
-                Is(Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Change.UNTEMPERED)))
+                Is(Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Direction.UNTEMPERED)))
     }
 
     @Test
