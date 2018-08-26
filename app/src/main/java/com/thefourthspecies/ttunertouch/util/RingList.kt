@@ -1,4 +1,4 @@
-package com.thefourthspecies.ttunertouch.addedittemperament
+package com.thefourthspecies.ttunertouch.util
 
 
 /**
@@ -7,6 +7,10 @@ package com.thefourthspecies.ttunertouch.addedittemperament
 class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     constructor() : this(emptyList<T>())
 
+    enum class Direction {
+        ASCENDING,
+        DESCENDING
+    }
 
     private var mFirst: T? = null
     private val mItems: MutableMap<T, Pointers<T>> = listToItems(items)
@@ -27,7 +31,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     private fun removeFrom(map: MutableMap<T, Pointers<T>>, item: T, first: T?) {
-        com.thefourthspecies.ttunertouch.util.assert(map.contains(item)) {
+        assert(map.contains(item)) {
             "Cannot remove item that is not in RingList: $item"
         }
 
@@ -41,7 +45,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
             mFirst = if (map.containsKey(next)) {
                 next
             } else {
-                com.thefourthspecies.ttunertouch.util.assert(map.isEmpty()) {
+                assert(map.isEmpty()) {
                     "RingList: There is no mFirst but mItems is not empty"
                 }
                 null
@@ -57,7 +61,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     private fun addTo(map: MutableMap<T, Pointers<T>>, item: T, first: T?) {
-        com.thefourthspecies.ttunertouch.util.assert(!map.containsKey(item)) {
+        assert(!map.containsKey(item)) {
             "Trying to add an item that is already in the RingList: item=$item"
         }
 
@@ -79,9 +83,13 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     private fun findPrevious(map: MutableMap<T, Pointers<T>>, item: T, first: T): T {
-        val next = iterateUntilExcluding(map, first, first, Direction.ASCENDING).find { it >= item }
+        val next = iterateUntilExcluding(map, first, first,
+            Direction.ASCENDING
+        ).find { it >= item }
         val prev = if (next == null) {
-            iterateUntilExcluding(map, first, first, Direction.ASCENDING).last()
+            iterateUntilExcluding(map, first, first,
+                Direction.ASCENDING
+            ).last()
         } else {
             map[next]!!.prev
         }
@@ -105,7 +113,12 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
 
         return object : Iterable<T> {
             override fun iterator(): Iterator<T> {
-                return RingIterator(map, start, end, direction)
+                return RingIterator(
+                    map,
+                    start,
+                    end,
+                    direction
+                )
             }
         }
     }
@@ -127,7 +140,9 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
     }
 
     override fun iterator(): Iterator<T> {
-        return iterateUntilExcluding(mItems, mFirst, mFirst, Direction.ASCENDING).iterator()
+        return iterateUntilExcluding(mItems, mFirst, mFirst,
+            Direction.ASCENDING
+        ).iterator()
     }
 
     private class RingIterator<T>(val map: MutableMap<T, Pointers<T>>, val start: T, val end: T, val direction: Direction) : AbstractIterator<T>() {
@@ -135,7 +150,7 @@ class RingList<T : Comparable<T>>(items: Iterable<T>) : Iterable<T> {
         var isStarting = true
 
         init {
-            com.thefourthspecies.ttunertouch.util.assert(map.contains(start) && map.containsKey(end)) {
+            assert(map.contains(start) && map.containsKey(end)) {
                 "RingIterator starting or ending at item that is not present in RingList: start=$start, end=$end"
             }
         }

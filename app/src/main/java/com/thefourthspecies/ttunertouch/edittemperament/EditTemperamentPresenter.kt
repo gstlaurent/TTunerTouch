@@ -1,23 +1,19 @@
-package com.thefourthspecies.ttunertouch.addedittemperament
+package com.thefourthspecies.ttunertouch.edittemperament
 
 import android.util.Log
 import android.content.DialogInterface
 import android.app.AlertDialog
 import android.app.Dialog
-import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.DialogFragment
-import android.support.v4.app.FragmentManager
 import com.thefourthspecies.ttunertouch.model.*
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlinx.coroutines.experimental.android.UI
+import com.thefourthspecies.ttunertouch.notecircle.NoteCirclePresenter
+import com.thefourthspecies.ttunertouch.util.DEBUG_TAG
 
 
-val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
-val DEFAULT_REFERENCE_NOTE = Note(Note.Letter.A)
-val DEFAULT_REFERENCE_PITCH = 415.0
+private val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
 
-enum class Order {
+private enum class Order {
     FIFTHS,
     PITCH;
 
@@ -26,31 +22,79 @@ enum class Order {
     }
 }
 
-
 /**
  * Created by Graham on 2018-02-21.
  */
-class NewTemperamentPresenter(
-        private val temperamentView: AddEditTemperamentContract.View
-) : AddEditTemperamentContract.Presenter {
+class EditTemperamentPresenter(
+    private val temperament: Temperament,
+    private val view: EditTemperamentContract.View
+) : EditTemperamentContract.Presenter {
+
 
     init {
-        temperamentView.presenter = this
+        view.presenter = this
     }
+
 
     override fun start() {
-        update()
+        view.temperament = temperament
     }
 
-    override val temperament = ChromaticTemperament(DEFAULT_REFERENCE_NOTE, DEFAULT_REFERENCE_PITCH)
+    override fun getDefaultTemper(fromNote: Note, toNote: Note): Temper {
+        // TODO
+        Log.d(DEBUG_TAG, "getDefaultTemper: not implemented")
+        return Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Direction.NARROWER)
+    }
 
-    override val uiRelationships: Set<NoteCircle.UIRelationship>
-        get() = temperament.relationships.map { it.toUI() }.toSet()
-    override val uiNotes: Set<NoteCircle.UINote>
-        get() {
-            val allNotes = temperament.notes + defaultNotes
-            return allNotes.map { it.toUI() }.toSet()
-        }
+    override fun getDefaultInterpolatedTemper(
+        fromNote: Note,
+        toNote: Note,
+        direction: Direction
+    ): Temper {
+        //TODO
+        Log.d(DEBUG_TAG, "getDefaultInterpolatedTemper: not implemented")
+        return Temper(Interval.PERFECT_FIFTH, Comma.PYTHAGOREAN, Fraction(1, 6), Temper.Direction.NARROWER)
+    }
+
+    override fun setTemper(fromNote: Note, toNote: Note) {
+        //TODO
+        Log.d(
+            DEBUG_TAG,
+            "setTemper: not implemented"
+        )//To change body of created functions use File | Settings | File and Code Templates.
+    }
+
+    override fun setInterpolatedTemper(lowNote: Note, highNote: Note) {
+        //TODO
+        Log.d(
+            DEBUG_TAG,
+            "setInterpolatedTemper: not implemented"
+        )//To change body of created functions use File | Settings | File and Code Templates.
+    }
+
+    override fun renameNote(note: Note, name: String) {
+        //TODO
+        Log.d(
+            DEBUG_TAG,
+            "renameNote: not implemented"
+        )//To change body of created functions use File | Settings | File and Code Templates.
+    }
+
+    override fun splitNote(note: Note): Note {
+        // TODO
+        Log.d(
+            DEBUG_TAG,
+            "splitNote: not implemented"
+        ) //To change body of created functions use File | Settings | File and Code Templates.
+        return note
+    }
+
+    init {
+        view.presenter = this
+    }
+
+
+
 
     var topNote = DEFAULT_TOP_NOTE
         set(note) {
@@ -74,7 +118,7 @@ class NewTemperamentPresenter(
             Note(Note.Letter.C, Note.Accidental.SHARP)
         ) - DEFAULT_REFERENCE_NOTE).toMutableSet()
 
-    var order = Order.FIFTHS
+    private var order = Order.FIFTHS
 
 
 //    override fun input(touchInput: TouchInput) {
@@ -94,27 +138,27 @@ class NewTemperamentPresenter(
 //            inputArc(fromNote, toNote, touchInput.direction)
 //        }
 //    }
-
-    override fun inputLine(fromNote: Note, toNote: Note) {
-        temperamentView.displayLineDetails()
-        // Display single input dialog with default values
-        val dialog = FireMissilesDialogFragment()
-        val fm = fragmentManager
-        if (fm == null) {
-            Log.d(DEBUG_TAG, "fragmentManager is null")
-        } else {
-            dialog.show(fm, "Input Line Fragment Test")
-        }
-    }
-
-    override fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
-        com.thefourthspecies.ttunertouch.util.assert(order == Order.FIFTHS) {
-            "Can only input by arc if circle of FIFTHS. Actual: $order"
-        }
-        // Display group input dialog with default values
+//
+//    override fun inputLine(fromNote: Note, toNote: Note) {
+//        view.displayLineDetails()
+//        // Display single input dialog with default values
 //        val dialog = FireMissilesDialogFragment()
-//        dialog.show(fragmentManager, "Input Arc Fragment Test")
-    }
+//        val fm = fragmentManager
+//        if (fm == null) {
+//            Log.d(DEBUG_TAG, "fragmentManager is null")
+//        } else {
+//            dialog.show(fm, "Input Line Fragment Test")
+//        }
+//    }
+//
+//    override fun inputArc(fromNote: Note, toNote: Note, direction: Direction) {
+//        com.thefourthspecies.ttunertouch.util.assert(order == Order.FIFTHS) {
+//            "Can only input by arc if circle of FIFTHS. Actual: $order"
+//        }
+//        // Display group input dialog with default values
+////        val dialog = FireMissilesDialogFragment()
+////        dialog.show(fragmentManager, "Input Arc Fragment Test")
+//    }
 
 
 
@@ -146,71 +190,10 @@ class NewTemperamentPresenter(
 //        }
 //    }
 
-
     private fun update() {
         noteCircle.update(this)
     }
 
-
-    private fun defaultPitch(note: Note): Hertz {
-        // TODO TEST?
-        val numSemiTones = note chromaticMinus temperament.referenceNote
-        val ratio = Math.pow(2.0, numSemiTones / CHROM_SIZE.toDouble())
-        return temperament.referencePitch * ratio
-
-    }
-
-    val Note.fifthIndex: Int
-        get() {
-            val semis: Int = this chromaticMinus topNote
-            return when (semis) {
-                0  -> 0
-                7  -> 1
-                2  -> 2
-                9  -> 3
-                4  -> 4
-                11 -> 5
-                6  -> 6
-                1  -> 7
-                8  -> 8
-                3  -> 9
-                10 -> 10
-                5  -> 11
-                else -> throw AssertionError(
-                        "fifthIndex is greater than 11: Note: $this, semis=$semis")
-            }
-        }
-
-    val Note.position: Double
-        get() = when (order) {
-            Order.FIFTHS -> {
-                val i = fifthIndex
-                i.toDouble() / Order.NUM_FIFTHS
-            }
-            Order.PITCH -> {
-                val ratio: Double = this.pitch / topNote.pitch
-                Math.log(ratio) / Math.log(2.0)
-            }
-        }
-
-    val Note.pitch: Hertz
-        get() = temperament.pitchOf(this) ?: defaultPitch(this)
-
-
-    fun Note.toUI(): NoteCircle.UINote {
-        val isHint = defaultNotes.contains(this)
-        if (isHint) {
-            com.thefourthspecies.ttunertouch.util.assert(!temperament.notes.contains(this)) {
-                "Note exists in default form as well as in Temperament: $this"
-            }
-        }
-        return noteCircle.UINote(position, this, isHint)
-    }
-
-    fun Relationship.toUI(): NoteCircle.UIRelationship {
-        val isArc = temper.comma != Comma.PURE
-        return noteCircle.UIRelationship(fromNote.toUI(), toNote.toUI(), temper.label, isArc)
-    }
 
 
 

@@ -1,22 +1,37 @@
-package com.thefourthspecies.ttunertouch.addedittemperament
+package com.thefourthspecies.ttunertouch.edittemperament
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import com.thefourthspecies.ttunertouch.R
-import kotlinx.android.synthetic.main.activity_main.*
+import com.thefourthspecies.ttunertouch.model.ChromaticTemperament
+import com.thefourthspecies.ttunertouch.model.Note
+import com.thefourthspecies.ttunertouch.notecircle.NoteCirclePresenter
+import com.thefourthspecies.ttunertouch.notecircle.NoteCircleFragment
+import kotlinx.android.synthetic.main.activity_edit_temperament.*
 
 
-class MainActivity : AppCompatActivity() {
-    lateinit var presenter: NewTemperamentPresenter
+val DEFAULT_REFERENCE_NOTE = Note(Note.Letter.A)
+private val DEFAULT_REFERENCE_PITCH = 415.0
+
+
+class EditTemperamentActivity : AppCompatActivity() {
+    lateinit var presenter: EditTemperamentContract.Presenter
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        noteCircle.textView = textView
+        setContentView(R.layout.activity_edit_temperament)
 
 
-        presenter = NewTemperamentPresenter(noteCircle)
+        val temperament = ChromaticTemperament(DEFAULT_REFERENCE_NOTE, DEFAULT_REFERENCE_PITCH)
+        val view = NoteCircleFragment()
+        presenter = EditTemperamentPresenter(temperament, view)
+
+
+
+
+
+
 
 
 
@@ -41,13 +56,13 @@ class MainActivity : AppCompatActivity() {
    // }
 }
 
-//class MainActivity : Activity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
+//class EditTemperamentActivity : Activity(), GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
 //    private var mDetector: GestureDetectorCompat? = null
 //
 //    // Called when the activity is first created.
 //    public override fun onCreate(savedInstanceState: Bundle?) {
 //        super.onCreate(savedInstanceState)
-//        setContentView(R.layout.activity_main)
+//        setContentView(R.layout.activity_edit_temperament)
 //
 //        noteCircle.textView = textView
 //        // Instantiate the gesture detector with the

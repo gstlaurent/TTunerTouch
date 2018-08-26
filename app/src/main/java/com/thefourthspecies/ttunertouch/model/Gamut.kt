@@ -123,7 +123,7 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
  * All temperable intervals, minus inversions.
  * @diatonicDifference: the distance in letter names (white keys)
  * @chromaticDifference: the distance in semitones
- * @ratio: note2 note frequency to note1 note frequency
+ * @ratio: endNote note frequency to startNote note frequency
  */
 enum class Interval(val diatonicDifference: Int, val chromaticDifference: Int, val ratio: Double) {
     MINOR_THIRD(2, 3, 6.0/5.0),

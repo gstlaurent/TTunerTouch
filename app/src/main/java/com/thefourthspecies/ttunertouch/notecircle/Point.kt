@@ -1,6 +1,7 @@
-package com.thefourthspecies.ttunertouch.addedittemperament
+package com.thefourthspecies.ttunertouch.notecircle
 
 import android.util.Log
+import com.thefourthspecies.ttunertouch.util.DEBUG_TAG
 
 /**
  * Point: represents a location in two ways:
@@ -19,7 +20,7 @@ import android.util.Log
  *
  *
  */
-class Point private constructor() {
+internal class Point private constructor() {
 
     var position: Double = 0.0
         private set(position) {

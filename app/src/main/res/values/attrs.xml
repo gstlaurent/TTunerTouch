@@ -25,7 +25,7 @@
         <!--<attr name="innerRadiusRatio"/>-->
     <!--</declare-styleable>-->
 
-    <declare-styleable name="NoteCircle">
+    <declare-styleable name="NoteCirclePresenter">
         <attr name="labelColor"/>
         <attr name="labelHeight"/>
         <attr name="labelWidth"/>

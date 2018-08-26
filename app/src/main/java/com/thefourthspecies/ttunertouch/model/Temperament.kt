@@ -1,8 +1,8 @@
 package com.thefourthspecies.ttunertouch.model
 
 import android.util.Log
-import com.thefourthspecies.ttunertouch.addedittemperament.DEBUG_TAG
-import com.thefourthspecies.ttunertouch.addedittemperament.Direction
+import com.thefourthspecies.ttunertouch.edittemperament.Direction
+import com.thefourthspecies.ttunertouch.util.DEBUG_TAG
 import java.util.*
 import kotlin.collections.HashSet
 import kotlin.math.abs
