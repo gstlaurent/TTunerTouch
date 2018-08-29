@@ -30,6 +30,13 @@ class Note(val letter: Letter, accidental: Accidental = Accidental.NONE, numAcci
         }
     }
 
+    /* The Equal Tempered Pitch given the temperament's reference note's pitch */
+    fun defaultPitchIn(temperament: Temperament): Hertz {
+        // TODO TEST?
+        val numSemiTones = this chromaticMinus temperament.referenceNote
+        val ratio = Math.pow(2.0, numSemiTones / CHROM_SIZE.toDouble())
+        return temperament.referencePitch * ratio
+    }
 
     fun atIntervalAbove(interval: Interval): Note {
         val upperLetter = letterAtOffset(letter.diatonicOffset + interval.diatonicDifference)

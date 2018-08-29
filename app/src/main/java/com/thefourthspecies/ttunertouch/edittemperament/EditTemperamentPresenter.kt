@@ -11,16 +11,6 @@ import com.thefourthspecies.ttunertouch.notecircle.NoteCirclePresenter
 import com.thefourthspecies.ttunertouch.util.DEBUG_TAG
 
 
-private val DEFAULT_TOP_NOTE = Note(Note.Letter.C)
-
-private enum class Order {
-    FIFTHS,
-    PITCH;
-
-    companion object {
-        const val NUM_FIFTHS = 12
-    }
-}
 
 /**
  * Created by Graham on 2018-02-21.
@@ -96,29 +86,9 @@ class EditTemperamentPresenter(
 
 
 
-    var topNote = DEFAULT_TOP_NOTE
-        set(note) {
-            field = note
-            update()
-        }
 
 
-    val defaultNotes: MutableSet<Note> = (setOf(
-            Note(Note.Letter.A, Note.Accidental.FLAT),
-            Note(Note.Letter.E, Note.Accidental.FLAT),
-            Note(Note.Letter.B, Note.Accidental.FLAT),
-            Note(Note.Letter.F),
-            Note(Note.Letter.C),
-            Note(Note.Letter.G),
-            Note(Note.Letter.D),
-            Note(Note.Letter.A),
-            Note(Note.Letter.E),
-            Note(Note.Letter.B),
-            Note(Note.Letter.F, Note.Accidental.SHARP),
-            Note(Note.Letter.C, Note.Accidental.SHARP)
-        ) - DEFAULT_REFERENCE_NOTE).toMutableSet()
 
-    private var order = Order.FIFTHS
 
 
 //    override fun input(touchInput: TouchInput) {
@@ -190,9 +160,6 @@ class EditTemperamentPresenter(
 //        }
 //    }
 
-    private fun update() {
-        noteCircle.update(this)
-    }
 
 
 

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.view.View
 import com.thefourthspecies.ttunertouch.R
+import com.thefourthspecies.ttunertouch.edittemperament.DEFAULT_REFERENCE_NOTE
 import kotlinx.android.synthetic.main.note_circle_fragment.*
 
 
@@ -18,11 +19,6 @@ class NoteCircleFragment : Fragment(), EditTemperamentContract.View {
 
     internal lateinit var noteCirclePresenter: NoteCirclePresenter
 
-    override fun onResume() {
-        super.onResume()
-        presenter.start()
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -31,7 +27,15 @@ class NoteCircleFragment : Fragment(), EditTemperamentContract.View {
         val root = inflater.inflate(R.layout.note_circle_fragment, container, false)
         // with (root) {
         noteCircleView.textView = textView // TODO remove this
-        noteCirclePresenter = NoteCirclePresenter(temperament, noteCircleView)
+        val ncTemperament = NCTemperament.createFrom(temperament, noteCircleView, Order.DEFAULT, DEFAULT_REFERENCE_NOTE) // TODO: deal with default values
+        noteCirclePresenter = NoteCirclePresenter(ncTemperament, noteCircleView)
         return root
     }
+
+    override fun onResume() {
+        super.onResume()
+        presenter.start()
+        noteCirclePresenter.start()
+    }
+
 }

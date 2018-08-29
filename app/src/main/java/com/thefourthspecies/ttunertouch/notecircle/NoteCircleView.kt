@@ -88,21 +88,21 @@ internal class NoteCircleView @JvmOverloads constructor(
     init {
         val a = context.theme.obtainStyledAttributes(
             attrs,
-            R.styleable.NoteCircle,
+            R.styleable.NoteCircleView,
             0, 0)
         try {
-            mLabelColor = a.getColor(R.styleable.NoteCircle_labelColor, -0x1000000)
-            mLabelHeight = a.getDimension(R.styleable.NoteCircle_labelHeight, 0.0f)
-            mLabelWidth = a.getDimension(R.styleable.NoteCircle_labelHeight, 0.0f) // todo: remove?
-            mLineColor = a.getColor(R.styleable.NoteCircle_lineColor, -0x1000000)
-            mLineThickness = a.getDimension(R.styleable.NoteCircle_lineThickness, 0.0f)
-            mDirectThickness = a.getDimension(R.styleable.NoteCircle_directThickness, 0.0f)
-            mDotColor = a.getColor(R.styleable.NoteCircle_dotColor, -0x1000000)
-            mDotRadiusRatio = a.getFloat(R.styleable.NoteCircle_dotRadiusRatio, 0.0f)
-            mInnerRadiusRatio = a.getFloat(R.styleable.NoteCircle_innerRadiusRatio, 0.5f)
-            mHintColor = a.getColor(R.styleable.NoteCircle_hintColor, -0x1000000)
-            mSelectColor = a.getColor(R.styleable.NoteCircle_selectColor, Color.BLUE)
-            mHighlightColor = a.getColor(R.styleable.NoteCircle_highlightColor, Color.RED)
+            mLabelColor = a.getColor(R.styleable.NoteCircleView_labelColor, -0x1000000)
+            mLabelHeight = a.getDimension(R.styleable.NoteCircleView_labelHeight, 0.0f)
+            mLabelWidth = a.getDimension(R.styleable.NoteCircleView_labelHeight, 0.0f) // todo: remove?
+            mLineColor = a.getColor(R.styleable.NoteCircleView_lineColor, -0x1000000)
+            mLineThickness = a.getDimension(R.styleable.NoteCircleView_lineThickness, 0.0f)
+            mDirectThickness = a.getDimension(R.styleable.NoteCircleView_directThickness, 0.0f)
+            mDotColor = a.getColor(R.styleable.NoteCircleView_dotColor, -0x1000000)
+            mDotRadiusRatio = a.getFloat(R.styleable.NoteCircleView_dotRadiusRatio, 0.0f)
+            mInnerRadiusRatio = a.getFloat(R.styleable.NoteCircleView_innerRadiusRatio, 0.5f)
+            mHintColor = a.getColor(R.styleable.NoteCircleView_hintColor, -0x1000000)
+            mSelectColor = a.getColor(R.styleable.NoteCircleView_selectColor, Color.BLUE)
+            mHighlightColor = a.getColor(R.styleable.NoteCircleView_highlightColor, Color.RED)
         } finally {
             a.recycle()
         }
@@ -579,7 +579,7 @@ internal class NoteCircleView @JvmOverloads constructor(
             canvas.drawArc(mInnerCircleBounds, startPoint.screenAngle, sweepAngle, useCenter, mSelectPaint)
 
             for (rel in temperament.relationships) {
-                rel.draw(canvas, this)
+                rel.draw(canvas, this@NoteCircleView)
             }
 
             drawDotsAndRadials(canvas, startNote, endNote)
@@ -621,7 +621,7 @@ internal class NoteCircleView @JvmOverloads constructor(
 }
 
 
-abstract class TouchInput(
+abstract internal class TouchInput(
     protected val startPoint: Point, // TODO: startNote, when points are easily accessible from a note
     protected var touchPoint: Point,
     sweepAngle: Float
